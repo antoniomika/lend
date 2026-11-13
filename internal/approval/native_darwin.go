@@ -5,7 +5,7 @@ package approval
 /*
 #cgo LDFLAGS: -framework AppKit -framework LocalAuthentication -framework LocalAuthenticationEmbeddedUI
 #include <stdlib.h>
-int lend_approve(const char *message, int requirement, int lease, int inline_biometric);
+int lend_approve(const char *message, int requirement, const char *lease, int inline_biometric);
 */
 import "C"
 
@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -71,11 +72,12 @@ func RunHelper() int {
 	}
 	cstr := C.CString(summary.String())
 	defer C.free(unsafe.Pointer(cstr))
-	lease := 0
+	var lease *C.char
 	if summary.Lease != nil {
-		lease = 1
+		lease = C.CString(fmt.Sprintf("Allow a lease for %s or %d uses", summary.Lease.Duration, summary.Lease.Uses))
+		defer C.free(unsafe.Pointer(lease))
 	}
-	result := C.lend_approve(cstr, C.int(requirement), C.int(lease), C.int(inline))
+	result := C.lend_approve(cstr, C.int(requirement), lease, C.int(inline))
 	if result == 2 {
 		return 2
 	}

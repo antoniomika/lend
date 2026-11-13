@@ -20,13 +20,26 @@ static NSScrollView *lend_request_view(const char *message, NSRect frame) {
     NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:frame];
     scroll.hasVerticalScroller = YES;
     scroll.hasHorizontalScroller = YES;
+    // The border and pinned scrollers show the request continues below the fold.
+    scroll.borderType = NSBezelBorder;
+    scroll.autohidesScrollers = NO;
     NSTextView *text = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, frame.size.width - 20, frame.size.height)];
     text.editable = NO;
     text.font = [NSFont userFixedPitchFontOfSize:12];
+    text.textContainerInset = NSMakeSize(6, 6);
     text.string = [NSString stringWithUTF8String:message];
     text.verticallyResizable = YES;
     scroll.documentView = text;
+    [text scrollRangeToVisible:NSMakeRange(0, 0)];
     return scroll;
+}
+
+// An unbundled helper otherwise gets the generic folder icon.
+static void lend_set_icon(NSAlert *alert) {
+    if (@available(macOS 11.0, *)) {
+        NSImage *icon = [NSImage imageWithSystemSymbolName:@"lock.shield" accessibilityDescription:@"lend"];
+        if (icon != nil) { alert.icon = icon; }
+    }
 }
 
 static void lend_stop_modal(NSInteger code) {
@@ -37,7 +50,7 @@ static void lend_stop_modal(NSInteger code) {
 }
 
 // Touch ID runs inside the request dialog, so a matching touch is the approval.
-static int lend_approve_inline(const char *message, int lease) API_AVAILABLE(macos(12.0)) {
+static int lend_approve_inline(const char *message, const char *lease) API_AVAILABLE(macos(12.0)) {
     LAContext *context = [[LAContext alloc] init];
     context.touchIDAuthenticationAllowableReuseDuration = 0;
     context.localizedFallbackTitle = @"";
@@ -47,6 +60,7 @@ static int lend_approve_inline(const char *message, int lease) API_AVAILABLE(mac
     }
 
     NSAlert *alert = [[NSAlert alloc] init];
+    lend_set_icon(alert);
     alert.messageText = @"Approve this lend request?";
     alert.informativeText = lease ? @"Review the full request. Touch ID allows this operation once, or the lease if selected." : @"Review the full request. Touch ID allows this operation once.";
     [alert addButtonWithTitle:@"Deny"];
@@ -54,15 +68,19 @@ static int lend_approve_inline(const char *message, int lease) API_AVAILABLE(mac
     CGFloat width = 680, scrollHeight = 360, y = 0;
     NSView *container = [[NSView alloc] initWithFrame:NSZeroRect];
     LAAuthenticationView *touch = [[LAAuthenticationView alloc] initWithContext:context];
-    touch.frame = NSMakeRect(0, y, 40, 40);
+    // The glyph draws at its own size, so the frame has to match it.
+    NSSize glyph = touch.intrinsicContentSize;
+    if (glyph.width <= 0 || glyph.height <= 0) { glyph = NSMakeSize(64, 64); }
+    touch.frame = NSMakeRect(0, y, glyph.width, glyph.height);
     [container addSubview:touch];
     NSTextField *hint = [NSTextField labelWithString:@"Touch ID to allow"];
-    hint.frame = NSMakeRect(50, y + 10, width - 50, 20);
+    hint.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightMedium];
+    hint.frame = NSMakeRect(glyph.width + 12, y + (glyph.height - 20) / 2, width - glyph.width - 12, 20);
     [container addSubview:hint];
-    y += 48;
+    y += glyph.height + 12;
     NSButton *leaseBox = nil;
     if (lease) {
-        leaseBox = [NSButton checkboxWithTitle:@"Allow the lease shown above" target:nil action:nil];
+        leaseBox = [NSButton checkboxWithTitle:[NSString stringWithUTF8String:lease] target:nil action:nil];
         leaseBox.frame = NSMakeRect(0, y, width, 20);
         [container addSubview:leaseBox];
         y += 28;
@@ -97,7 +115,7 @@ static int lend_approve_inline(const char *message, int lease) API_AVAILABLE(mac
     return 0;
 }
 
-int lend_approve(const char *message, int requirement, int lease, int inline_biometric) {
+int lend_approve(const char *message, int requirement, const char *lease, int inline_biometric) {
     @autoreleasepool {
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
@@ -108,6 +126,7 @@ int lend_approve(const char *message, int requirement, int lease, int inline_bio
             }
         }
         NSAlert *alert = [[NSAlert alloc] init];
+        lend_set_icon(alert);
         alert.messageText = @"Approve this lend request?";
         alert.informativeText = lease ? @"Review the full request and optional lease scope." : @"Review the full request. Allow applies to this operation once.";
         [alert addButtonWithTitle:@"Deny"];
