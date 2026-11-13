@@ -1,7 +1,6 @@
 ---
 title: Activity and history
 description: Inspect sessions, revoke requests, and record completed activity.
-toc: true
 ---
 
 ## Activity and revocation

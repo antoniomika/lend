@@ -1,30 +1,15 @@
-{{define "sitemap-links"}}
-  <ul class="sidebar-list">
-    {{range .Sitemap.Children}}
-    <li>
-      {{if .Href}}
-      <a href="{{.GenHref}}" {{if eq $.Href .Href}}aria-current="page"{{end}}>{{.Text}}</a>
-      {{else}}
-      <span class="nav-group">{{.Text}}</span>
-      {{end}}
-      {{if and .Children (not .Page)}}
-      <ul class="sidebar-list">
-        {{range .Children}}
-        <li><a href="{{.GenHref}}" {{if eq $.Href .Href}}aria-current="page"{{end}}>{{.Text}}</a></li>
-        {{end}}
-      </ul>
-      {{end}}
-    </li>
-    {{end}}
-  </ul>
-{{end}}
-
-{{define "sidebar"}}
-<aside class="sidebar">
-  <nav class="desktop-nav" aria-label="Documentation">{{template "sitemap-links" .}}</nav>
-  <details class="mobile-nav">
-    <summary>Documentation menu</summary>
-    <nav aria-label="Documentation">{{template "sitemap-links" .}}</nav>
-  </details>
-</aside>
+{{define "nav"}}
+<nav class="mk-nav">
+  <div class="flex flex-wrap items-center justify-center gap-2">
+    <a href="/" class="link-alt">
+      lend
+    </a>
+    <a href="/sitemap.html" class="link-alt">
+      sitemap
+    </a>
+    <a href="https://github.com/antoniomika/lend" class="link-alt">
+      github
+    </a>
+  </div>
+</nav>
 {{end}}

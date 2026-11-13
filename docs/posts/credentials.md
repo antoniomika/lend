@@ -1,7 +1,6 @@
 ---
 title: Credentials and environment
 description: Inject local credentials into an approved command.
-toc: true
 ---
 
 ## Local command environment

@@ -1,7 +1,6 @@
 ---
 title: Command policy
 description: Choose local executables, argument prefixes, and approval requirements.
-toc: true
 ---
 
 ## Allow selected commands

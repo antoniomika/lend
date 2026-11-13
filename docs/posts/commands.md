@@ -1,7 +1,6 @@
 ---
 title: Running commands
 description: Request local execution from a remote shell.
-toc: true
 ---
 
 ## From laptop to remote host

@@ -1,7 +1,6 @@
 ---
 title: Approval and callers
 description: Review requests on your laptop and understand the caller information shown.
-toc: true
 ---
 
 ## Review each request

@@ -1,7 +1,6 @@
 ---
 title: Getting started
 description: Run your first locally approved command from a remote shell.
-toc: true
 ---
 
 ## Install on both machines

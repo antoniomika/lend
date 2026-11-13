@@ -1,7 +1,6 @@
 ---
 title: MCP
 description: Give a remote coding agent a tool for requesting local commands.
-toc: true
 ---
 
 ## Connect a client

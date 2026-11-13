@@ -1,7 +1,6 @@
 ---
 title: CLI reference
 description: Commands for the laptop, remote shell, and MCP client.
-toc: true
 ---
 
 ## Start and connect

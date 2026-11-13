@@ -1,7 +1,6 @@
 ---
 title: Cheatsheet
 description: Common laptop and remote commands.
-toc: true
 ---
 
 ## On the laptop

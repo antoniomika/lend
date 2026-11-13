@@ -1,19 +1,20 @@
 {{template "base" .}}
+
+{{define "title"}}{{.Data.Title}}{{end}}
+
+{{define "attrs"}}class="container-sm"{{end}}
+
 {{define "body"}}
-<main id="main" class="sitemap-page" tabindex="-1">
-  <div class="page-heading"><h1>{{.Data.Title}}</h1><p>{{.Data.Description}}</p></div>
-  <div class="sitemap-grid">
-    {{range .Sitemap.Children}}
-    {{if and .Children (not .Page)}}
-    <section class="box">
-      <h2>{{.Text}}</h2>
-      <ul>
-        {{range .Children}}<li><a href="{{.GenHref}}">{{.Text}}</a></li>{{end}}
-      </ul>
-    </section>
-    {{end}}
-    {{end}}
-  </div>
-  {{template "footer" .}}
+{{template "nav" .}}
+
+<main id="main">
+  <h1 class="text-2xl text-underline-hdr text-hdr inline-block">{{.Data.Title}}</h1>
+  <h2 class="text-xl">{{.Data.Description}}</h2>
+
+  <hr />
+
+  {{template "toc" .}}
 </main>
+
+{{template "footer" .}}
 {{end}}

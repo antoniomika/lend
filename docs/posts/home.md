@@ -4,7 +4,3 @@ description: Give remote shells and coding agents access to selected commands an
 slug: index
 template: home.page.tmpl
 ---
-
-## Remote commands, approved on your laptop
-
-Use the [getting started guide](/getting-started.html) to connect a remote host to your laptop.

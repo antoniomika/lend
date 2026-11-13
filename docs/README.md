@@ -1,6 +1,6 @@
 # Lend docs
 
-The docs use [pdocs](https://github.com/picosh/pdocs), the same static-site generator as sish. The layout follows sish's documentation, with a home page, sidebar navigation, syntax highlighting, and light and dark themes. All CSS and icons are served locally. The site needs no JavaScript or frontend package manager.
+The docs use [pdocs](https://github.com/picosh/pdocs), the same static-site generator as sish. The layout follows sish's documentation, with a home page, a sitemap column beside each guide, syntax highlighting, and light and dark themes. All CSS and icons are served locally. The site needs no JavaScript or frontend package manager.
 
 ## Build and preview
 
@@ -23,7 +23,7 @@ The checker verifies local links, heading fragments, assets, page metadata, and 
 
 ## Edit content
 
-- `posts/*.md` contains the guides, with YAML frontmatter for the title and description. `toc: true` enables the page contents menu.
+- `posts/*.md` contains the guides, with YAML frontmatter for the title and description.
 - `protocol.md` and `releasing.md` remain the sources for those reference pages. The generator adds site metadata during the build.
 - `cmd/main.go` defines navigation order and groups. Add each new page to this list.
 - `tmpl/*.tmpl` defines Go HTML templates.

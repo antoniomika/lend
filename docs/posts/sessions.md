@@ -1,7 +1,6 @@
 ---
 title: Sessions and leases
 description: Use independent profiles and bounded approval grants for each SSH connection.
-toc: true
 ---
 
 ## Profiles and SSH sessions

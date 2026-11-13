@@ -1,7 +1,6 @@
 ---
 title: How it works
 description: An SSH agent proxy carries requests back to your laptop for local policy and approval.
-toc: true
 ---
 
 ## One forwarded socket

@@ -1,7 +1,6 @@
 ---
 title: SSH keys
 description: Filter upstream identities and approve signing with individual key rules.
-toc: true
 ---
 
 ## Allow selected keys

@@ -81,7 +81,7 @@ func generate() error {
 		title, _ := json.Marshal(doc.title)
 		description, _ := json.Marshal(doc.description)
 		path := filepath.Join(stage, doc.slug+".md")
-		if err := os.WriteFile(path, []byte(fmt.Sprintf("---\ntitle: %s\ndescription: %s\ntoc: true\n---\n%s", title, description, body)), 0644); err != nil {
+		if err := os.WriteFile(path, []byte(fmt.Sprintf("---\ntitle: %s\ndescription: %s\n---\n%s", title, description, body)), 0644); err != nil {
 			return err
 		}
 		item := &pdocs.Sitemap{Text: doc.title, Href: "/" + doc.slug + ".html", Page: path}

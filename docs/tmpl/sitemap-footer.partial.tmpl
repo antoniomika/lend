@@ -1,0 +1,32 @@
+{{define "sitemap-footer"}}
+  <ul class="sitemap list-none sidebar-list">
+  {{range .Sitemap.Children}}
+    {{if .Href}}
+    <li>
+      <span class="font-bold">
+        {{if (eq $.Href .GenHref)}}
+        <a href="{{.GenHref}}" class="link-alt-hover">{{.Text}}</a>
+        {{else}}
+        <a href="{{.GenHref}}" class="link-alt">{{.Text}}</a>
+        {{end}}
+      </span>
+    {{else}}
+    <li>
+      <span class="font-bold">{{.Text}}</span>
+    {{end}}
+
+      {{if .Children}}
+      <ul class="list-square sidebar-list">
+        {{range .Children}}
+          <li>
+            <a href="{{.GenHref}}" class="link-alt{{if (eq $.Href .GenHref)}}-hover{{end}}">
+              {{.Text}}
+            </a>
+          </li>
+        {{end}}
+      </ul>
+      {{end}}
+    </li>
+  {{end}}
+  </ul>
+{{end}}

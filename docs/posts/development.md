@@ -1,7 +1,6 @@
 ---
 title: Development
 description: Build and check Lend and its documentation.
-toc: true
 ---
 
 ## Checks

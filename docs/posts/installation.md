@@ -1,7 +1,6 @@
 ---
 title: Installation
 description: Install Lend on your laptop and remote hosts.
-toc: true
 ---
 
 ## Install

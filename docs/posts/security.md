@@ -1,7 +1,6 @@
 ---
 title: Scope and trust
 description: Understand what local approval and SSH forwarding authorize.
-toc: true
 ---
 
 ## Execution and forwarding

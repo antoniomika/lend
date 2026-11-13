@@ -1,7 +1,6 @@
 ---
 title: Agent management
 description: Approve changes to your upstream SSH agent.
-toc: true
 ---
 
 ## Management policy

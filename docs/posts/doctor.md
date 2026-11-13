@@ -1,7 +1,6 @@
 ---
 title: Doctor
 description: Check local setup and forwarded sockets without requesting access.
-toc: true
 ---
 
 ## Local and remote checks
