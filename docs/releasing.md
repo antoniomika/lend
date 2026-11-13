@@ -45,6 +45,8 @@ Set `HOMEBREW_TAP_TOKEN` as an Actions secret in this repository. Use a fine-gra
 
 After uploading a stable release's assets, the Release workflow calls `.github/workflows/homebrew.yml`. It downloads the published formula, checks its checksum and Ruby syntax, then pushes one commit updating `Formula/lend.rb` in the tap. The commit subject is `chore(homebrew): update lend TAG`. Prereleases skip this step, and the Homebrew workflow refuses drafts and prereleases. To update the tap again for an existing release, run **Update Homebrew tap** manually with its tag. The workflow does not create the tap or a pull request.
 
+Stable releases also publish the docs site from the release tag through `.github/workflows/docs.yml`, using the pgs.sh secrets described in the [docs guide](https://github.com/antoniomika/lend/blob/main/docs/README.md).
+
 After that first update, users can run:
 
 ```sh

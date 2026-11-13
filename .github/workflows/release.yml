@@ -143,3 +143,10 @@ jobs:
     with:
       tag: ${{ needs.prepare.outputs.tag }}
     secrets: inherit
+  docs:
+    needs: [prepare, upload]
+    if: needs.prepare.outputs.prerelease == 'false'
+    uses: ./.github/workflows/docs.yml
+    with:
+      publish: true
+    secrets: inherit

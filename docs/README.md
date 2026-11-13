@@ -41,6 +41,6 @@ For pgs.sh, configure the same Actions secrets used by sish:
 - `PRIVATE_KEY`: deployment SSH private key.
 - `CERT_PUBKEY`: its SSH certificate, if used by the account.
 
-After reviewing the generated artifact, manually run the Docs workflow from `main` with `publish` enabled. It uploads a versioned `lend-COMMIT` project and promotes it to `lend-prod`. The action retains Lend projects by the `lend-` prefix. The hosting account and its DNS configuration determine the public URL.
+Each stable release publishes the docs from its tag after the release assets are uploaded. To publish between releases, manually run the Docs workflow from `main` with `publish` enabled. It uploads a versioned `lend-COMMIT` project and promotes it to `lend-prod`. The action retains Lend projects by the `lend-` prefix. The hosting account and its DNS configuration determine the public URL.
 
 Building the documentation does not publish it. To use a different static host, upload the contents of `docs/public` to that host's document root.

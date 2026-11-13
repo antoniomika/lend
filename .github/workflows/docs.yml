@@ -16,6 +16,11 @@ on:
       - scripts/check_docs.py
       - Makefile
       - .github/workflows/docs.yml
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       publish:
@@ -25,10 +30,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: docs-${{ github.ref }}
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -50,9 +51,13 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    # Manual runs publish from main; the Release workflow publishes from the release tag.
+    if: inputs.publish && (github.ref == 'refs/heads/main' || github.event_name == 'release')
     needs: build
     runs-on: ubuntu-24.04
+    concurrency:
+      group: docs-publish
+      cancel-in-progress: false
     timeout-minutes: 10
     steps:
       - uses: actions/download-artifact@v8
