@@ -147,6 +147,12 @@ func renderActivity(socket string, response control.Response, history bool) {
 		if entry.Operation != "" {
 			target = entry.Operation + " " + target
 		}
+		if entry.Topic != "" {
+			target = entry.Topic
+			if entry.Info != nil {
+				target += " " + entry.Info.Title
+			}
+		}
 		fmt.Fprintf(os.Stdout, "  %s %-11s %-12s %s", entry.ID, entry.Kind, entry.State, strconv.QuoteToASCII(target))
 		if entry.Info != nil {
 			if entry.Info.Caller != nil {
@@ -190,6 +196,7 @@ func explain(args []string) (int, error) {
 	namespace := fs.String("namespace", "", "SSHSIG namespace")
 	operation := fs.String("operation", "", "explain an SSH management operation")
 	provider := fs.String("provider", "", "provider identifier for management")
+	topic := fs.String("topic", "", "explain an approval request topic")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0, nil
@@ -205,6 +212,12 @@ func explain(args []string) (int, error) {
 	}
 	result := policy.Explanation{}
 	switch {
+	case *topic != "":
+		if fs.NArg() != 0 {
+			return 2, errors.New("topic explanation takes no command")
+		}
+		result.Approval, err = p.AuthorizeApproval(*topic)
+		result.Allowed = err == nil
 	case *operation != "":
 		if fs.NArg() != 0 {
 			return 2, errors.New("management explanation takes no command")
@@ -222,7 +235,7 @@ func explain(args []string) (int, error) {
 		result.Allowed = err == nil
 	default:
 		if fs.NArg() == 0 {
-			return 2, errors.New("explain requires a command, --key, or --operation")
+			return 2, errors.New("explain requires a command, --key, --operation, or --topic")
 		}
 		result = p.Explain(*directory, protocol.Request{Args: fs.Args(), Reason: *reason})
 	}

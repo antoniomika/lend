@@ -14,7 +14,7 @@ Type 13 signing requests contain an SSH string key blob, an SSH string payload, 
 
 The `ssh` purpose recognizes SSH user authentication payloads from [RFC 4252](https://www.rfc-editor.org/rfc/rfc4252.html), including OpenSSH's hostbound variant. The public key inside the payload must equal the signing request's key. The `sshsig` purpose recognizes the signing data format in [PROTOCOL.sshsig](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.sshsig), with a nonempty namespace, a supported hash name, and its corresponding digest length. Other payloads are classified as `raw`. Purpose classification does not verify a remote host's identity.
 
-`session-bind@openssh.com` is forwarded on the original connection. The `query` extension is answered locally and advertises only `query`, `session-bind@openssh.com`, and the lend execution extension. Unknown extensions and legacy agent messages return type 5 without reaching the upstream agent.
+`session-bind@openssh.com` is forwarded on the original connection. The `query` extension is answered locally and advertises only `query`, `session-bind@openssh.com`, and the lend execution and approval extensions. Unknown extensions and legacy agent messages return type 5 without reaching the upstream agent.
 
 ## Management requests
 
@@ -68,6 +68,20 @@ Streaming uses the same length prefix, with private-use message types:
 Each sender emits data chunks of at most 32768 bytes. Readers enforce the overall frame limit. Stdin bytes are valid only before stdin EOF. The server rejects duplicate EOF, data after EOF, and unknown message types. Stdout and stderr each retain their byte order; their relative interleaving is unspecified.
 
 The agent sends exit status after output has drained, then closes the connection. An execution error also ends the session. The client maps protocol and transport failures to exit status 125. Closing the client connection requests cancellation. Approval and execution timeouts are configured locally.
+
+## Approval requests
+
+An approval request uses its own extension and does not switch the connection to streaming:
+
+```text
+byte    27 (SSH_AGENTC_EXTENSION)
+string  "approve-v1@lend.antoniomika.com"
+bytes   UTF-8 JSON: {"topic":"deploy","title":"Deploy api","details":"...","reason":"...","caller":{"source":"cli"}}
+```
+
+Only `topic`, `title`, optional `details`, optional `reason`, and optional `caller` are accepted. The topic is 1 to 64 letters, digits, `-`, or `_`. The title is required, nonblank, and at most 256 bytes; details are at most 32768 bytes; the reason is at most 2048 bytes. All strings must be valid UTF-8 without NUL. `caller` follows the execution request rules.
+
+The server checks the topic against the local `approvals` policy, obtains the required approval, and replies with a single-byte `6` (`SSH_AGENT_SUCCESS`). A refused topic, denial, expired approval, or invalid request returns a single-byte `28`. The connection stays open for further agent requests.
 
 ## Local session state
 

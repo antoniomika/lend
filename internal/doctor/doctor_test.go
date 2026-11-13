@@ -233,3 +233,21 @@ func TestApprovalBackendOnlyRequiredForPromptedOperations(t *testing.T) {
 		})
 	}
 }
+
+func TestBiometricStylesRequireBiometrics(t *testing.T) {
+	path, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, approvalValue := range []string{"biometric", "biometric:inline", "biometric:separate"} {
+		p, err := policy.Parse([]byte(`{"commands":[{"executable":` + quote(path) + `,"approval":` + quote(approvalValue) + `}]}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		report := Report{}
+		checkApproval(&report, p, "auto", approval.Support{Backend: "macOS", Prompt: true, Authentication: true})
+		if !hasCheck(report, "biometrics", "error") {
+			t.Fatalf("%s did not check biometrics: %+v", approvalValue, report.Checks)
+		}
+	}
+}

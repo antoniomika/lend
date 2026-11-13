@@ -3,9 +3,9 @@
 package approval
 
 /*
-#cgo LDFLAGS: -framework AppKit -framework LocalAuthentication
+#cgo LDFLAGS: -framework AppKit -framework LocalAuthentication -framework LocalAuthenticationEmbeddedUI
 #include <stdlib.h>
-int lend_approve(const char *message, int requirement, int lease);
+int lend_approve(const char *message, int requirement, int lease, int inline_biometric);
 */
 import "C"
 
@@ -57,12 +57,14 @@ func RunHelper() int {
 	if err := json.NewDecoder(io.LimitReader(os.Stdin, 256*1024)).Decode(&summary); err != nil {
 		return 1
 	}
-	requirement := 1
+	requirement, inline := 1, 0
 	switch summary.Requirement {
 	case "prompt":
 		requirement = 0
-	case "biometric":
+	case "biometric", "biometric:separate":
 		requirement = 2
+	case "biometric:inline":
+		requirement, inline = 2, 1
 	case "auto", "authenticate", "":
 	default:
 		return 1
@@ -73,7 +75,7 @@ func RunHelper() int {
 	if summary.Lease != nil {
 		lease = 1
 	}
-	result := C.lend_approve(cstr, C.int(requirement), C.int(lease))
+	result := C.lend_approve(cstr, C.int(requirement), C.int(lease), C.int(inline))
 	if result == 2 {
 		return 2
 	}

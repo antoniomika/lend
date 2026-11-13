@@ -22,6 +22,7 @@ type Entry struct {
 	Executable  string            `json:"executable,omitempty"`
 	Fingerprint string            `json:"fingerprint,omitempty"`
 	Operation   string            `json:"operation,omitempty"`
+	Topic       string            `json:"topic,omitempty"`
 	Started     time.Time         `json:"started"`
 	Finished    time.Time         `json:"finished,omitempty"`
 	Duration    time.Duration     `json:"duration,omitempty"`
@@ -73,7 +74,7 @@ func (s *Store) Begin(parent context.Context, connection, session, kind string, 
 		cancel()
 		return nil, "", errors.New("lend is paused")
 	}
-	entry := Entry{ID: id, Parent: connection, Session: session, Kind: kind, State: "connected", Started: time.Now().UTC(), Executable: summary.Executable, Fingerprint: summary.KeyFingerprint}
+	entry := Entry{ID: id, Parent: connection, Session: session, Kind: kind, State: "connected", Started: time.Now().UTC(), Executable: summary.Executable, Fingerprint: summary.KeyFingerprint, Topic: summary.Topic}
 	if kind != "connection" {
 		entry.State = "checking"
 		entry.Info = &summary

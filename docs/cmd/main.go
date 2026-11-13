@@ -56,6 +56,7 @@ func generate() error {
 		{Text: "Use Lend", Children: []*pdocs.Sitemap{
 			page("Running commands", "commands"),
 			page("MCP", "mcp"),
+			page("Agent approvals", "agent-approvals"),
 			page("Activity and history", "activity"),
 			page("CLI reference", "cli"),
 			page("Cheatsheet", "cheatsheet"),

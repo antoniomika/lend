@@ -31,6 +31,7 @@ type Policy struct {
 	RequireReason    bool               `json:"require_reason,omitempty"`
 	Commands         []Rule             `json:"commands"`
 	SSH              SSHPolicy          `json:"ssh"`
+	Approvals        ApprovalsPolicy    `json:"approvals,omitempty"`
 	Profiles         map[string]*Policy `json:"profiles,omitempty"`
 	SecretReader     string             `json:"secret_reader,omitempty"`
 	SecretReaderArgs []string           `json:"secret_reader_args,omitempty"`
@@ -38,7 +39,7 @@ type Policy struct {
 }
 
 func AllowAll() *Policy {
-	return &Policy{Default: "allow", DefaultApproval: "auto", SSH: SSHPolicy{Default: "allow", DefaultApproval: "auto", Management: ManagementPolicy{Default: "allow", DefaultApproval: "auto"}}}
+	return &Policy{Default: "allow", DefaultApproval: "auto", SSH: SSHPolicy{Default: "allow", DefaultApproval: "auto", Management: ManagementPolicy{Default: "allow", DefaultApproval: "auto"}}, Approvals: ApprovalsPolicy{Default: "allow", DefaultApproval: "auto"}}
 }
 
 func Load(path string) (*Policy, error) {
@@ -124,6 +125,9 @@ func (p *Policy) validate(nested bool) error {
 	if err := p.SSH.validate(); err != nil {
 		return err
 	}
+	if err := p.Approvals.validate(); err != nil {
+		return err
+	}
 	for i := range p.Commands {
 		rule := &p.Commands[i]
 		if !filepath.IsAbs(rule.Executable) {
@@ -169,7 +173,15 @@ func (p *Policy) validate(nested bool) error {
 }
 
 func validApproval(value string) bool {
-	return value == "none" || value == "auto" || value == "prompt" || value == "authenticate" || value == "biometric"
+	return value == "none" || value == "auto" || value == "prompt" || value == "authenticate" || value == "biometric" || value == "biometric:separate" || value == "biometric:inline"
+}
+
+// BaseApproval drops the prompt style from biometric approvals.
+func BaseApproval(value string) string {
+	if strings.HasPrefix(value, "biometric:") {
+		return "biometric"
+	}
+	return value
 }
 
 func (p *Policy) Authorize(executable string, request protocol.Request) (string, error) {

@@ -108,6 +108,7 @@ func TestInvalidPolicies(t *testing.T) {
 	for _, data := range [][]byte{
 		[]byte(`{"default":"anything"}`),
 		[]byte(`{"default_approval":"never"}`),
+		[]byte(`{"default_approval":"biometric:popup"}`),
 		[]byte(`{"commands":[{"executable":"tool","approval":"prompt"}]}`),
 		[]byte(`{"default":"allow","typo":true}`),
 		[]byte(`{} {}`), duplicate,

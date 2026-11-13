@@ -52,7 +52,7 @@ func TestTerminalCannotDowngradeAuthentication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mode := range []string{"biometric", "authenticate"} {
+	for _, mode := range []string{"biometric", "biometric:inline", "biometric:separate", "authenticate"} {
 		if err := approve(context.Background(), Summary{Requirement: mode}); err == nil {
 			t.Fatalf("terminal satisfied %s", mode)
 		}
@@ -82,5 +82,17 @@ func TestSSHSigningPrompt(t *testing.T) {
 	}
 	if strings.Contains(s, "Executable:") || strings.ContainsRune(s, '\x1b') {
 		t.Fatal("signing prompt contains command fields or terminal controls")
+	}
+}
+
+func TestApprovalRequestSummaryEscapesDetails(t *testing.T) {
+	s := Summary{Kind: "approval", Topic: "claude-code", Title: "Run\x1b[2J", Details: "echo \"hi\" \\\n\tnext\x07 é"}.String()
+	for _, want := range []string{"Nothing runs on this computer.", `Topic: "claude-code"`, `Title (requester supplied): "Run\x1b[2J"`, `  echo "hi" \`, `      next\a \u00e9`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in:\n%s", want, s)
+		}
+	}
+	if strings.ContainsAny(s, "\x1b\x07\t") {
+		t.Fatalf("control characters reached the prompt:\n%s", s)
 	}
 }

@@ -245,12 +245,27 @@ func checkApproval(r *Report, p *policy.Policy, mode string, support approval.Su
 				r.add("unprompted", "warn", "SSH key "+key.Fingerprint+" signs without approval")
 			}
 		}
+		if p.Approvals.Default == "allow" {
+			requirements = append(requirements, p.Approvals.DefaultApproval)
+			if p.Approvals.DefaultApproval == "none" {
+				r.add("unprompted", "warn", "every approval request without a matching topic is approved without asking")
+			}
+		}
+		for _, rule := range p.Approvals.Topics {
+			requirements = append(requirements, rule.Approval)
+			if rule.Approval == "none" {
+				r.add("unprompted", "warn", "approval topic "+rule.Name+" is approved without asking")
+			}
+		}
 		for _, rule := range p.SSH.Management.Operations {
 			requirements = append(requirements, rule.Approval)
 			if rule.Approval == "none" {
 				r.add("unprompted", "warn", "management operation "+rule.Operation+" runs without approval")
 			}
 		}
+	}
+	for i, requirement := range requirements {
+		requirements[i] = policy.BaseApproval(requirement)
 	}
 	if !slices.ContainsFunc(requirements, func(requirement string) bool { return requirement != "none" }) {
 		r.add("approval-backend", "ok", "policy does not require local approval")

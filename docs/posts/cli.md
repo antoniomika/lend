@@ -40,6 +40,16 @@ These commands select `SSH_AUTH_SOCK` by default. On a remote host, it must poin
 
 The MCP command serves JSON-RPC over stdio and exposes `run_local_command`. See the [MCP guide](/mcp.html) for configuration and output limits.
 
+## Request approval
+
+```text
+lend approve [--socket PATH] --topic NAME --title TEXT [--details TEXT | --details-file PATH] [--reason TEXT]
+lend approve [--socket PATH] [--topic NAME] --hook claude-code|codex|agy|pi
+lend approve [--socket PATH] --topic NAME --hook claude-compatible|json
+```
+
+`approve` asks the laptop for a decision and runs nothing there. It exits 0 when approved, 1 when refused, and 125 when it cannot reach a lend agent. `--hook` reads an agent's hook event from stdin and writes that agent's decision format. See [Agent approvals](/agent-approvals.html).
+
 ## Inspect and control local sessions
 
 ```text
@@ -59,6 +69,7 @@ Run control commands on the laptop. They use the local default proxy socket or a
 lend explain --config FILE [--profile NAME] [--dir PATH] [--reason TEXT] -- COMMAND [ARG...]
 lend explain --config FILE [--profile NAME] --key FINGERPRINT [--purpose ssh|sshsig|raw] [--namespace NAME]
 lend explain --config FILE [--profile NAME] --operation NAME [--key FINGERPRINT] [--provider ID]
+lend explain --config FILE [--profile NAME] --topic NAME
 ```
 
 The JSON result evaluates the config on disk without running a command, reading credentials, or requesting approval. It does not inspect live signature quotas or grants.

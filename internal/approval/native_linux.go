@@ -15,7 +15,7 @@ func native(ctx context.Context, s Summary) error {
 }
 
 func nativeDecision(ctx context.Context, s Summary) (Decision, error) {
-	if s.Requirement == "authenticate" || s.Requirement == "biometric" {
+	if s.Requirement == "authenticate" || biometric(s.Requirement) {
 		return Decision{}, errors.New("required device authentication is unavailable on Linux")
 	}
 	if os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != "" {

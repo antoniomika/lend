@@ -22,6 +22,9 @@ type Summary struct {
 	Directory        string
 	Reason           string
 	Requirement      string
+	Topic            string
+	Title            string
+	Details          string
 	KeyFingerprint   string
 	KeyType          string
 	KeyLabel         string
@@ -80,6 +83,23 @@ func (s Summary) String() string {
 		b.WriteString("Private key material, passphrases, and PINs are hidden. Approval applies to this operation once.")
 		return b.String()
 	}
+	if s.Kind == "approval" {
+		b.WriteString("A forwarded request is asking for your decision. Nothing runs on this computer.\nOrigin: unverified\n\n")
+		s.writeCaller(&b)
+		fmt.Fprintf(&b, "Topic: %s\n", strconv.QuoteToASCII(s.Topic))
+		if s.Reason != "" {
+			fmt.Fprintf(&b, "Reason (requester supplied): %s\n", strconv.QuoteToASCII(s.Reason))
+		}
+		fmt.Fprintf(&b, "Title (requester supplied): %s\n", strconv.QuoteToASCII(s.Title))
+		if s.Details != "" {
+			b.WriteString("Details (requester supplied, control and non-ASCII characters escaped):\n")
+			for _, line := range strings.Split(s.Details, "\n") {
+				b.WriteString("  " + escapeLine(line) + "\n")
+			}
+		}
+		b.WriteString("\nApproval answers this request once. The requester decides what the answer allows.")
+		return b.String()
+	}
 	if s.Kind == "ssh-sign" {
 		b.WriteString("A forwarded request wants to sign data with an SSH key.\nOrigin: unverified\n\n")
 		s.writeCaller(&b)
@@ -109,6 +129,23 @@ func (s Summary) String() string {
 		fmt.Fprintf(&b, "  [%d] %s\n", i, strconv.QuoteToASCII(arg))
 	}
 	b.WriteString("\nThe command receives this computer's environment. Its output is sent to the requester.\nStdin comes from the requester and can contain additional instructions.")
+	return b.String()
+}
+
+// escapeLine keeps quotes and backslashes readable so JSON and shell text display as written.
+func escapeLine(line string) string {
+	var b strings.Builder
+	for _, r := range line {
+		switch {
+		case r == '\t':
+			b.WriteString("    ")
+		case r < 0x20 || r == 0x7f || r > 0x7e:
+			quoted := strconv.QuoteRuneToASCII(r)
+			b.WriteString(quoted[1 : len(quoted)-1])
+		default:
+			b.WriteRune(r)
+		}
+	}
 	return b.String()
 }
 

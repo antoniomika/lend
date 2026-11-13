@@ -26,13 +26,17 @@ func NewDecider(mode string) (Decider, error) {
 	}
 	return func(ctx context.Context, s Summary) (Decision, error) {
 		if mode == "terminal" {
-			if s.Requirement == "biometric" || s.Requirement == "authenticate" {
+			if biometric(s.Requirement) || s.Requirement == "authenticate" {
 				return Decision{}, errors.New("terminal approval cannot satisfy required device authentication")
 			}
 			return terminalDecision(ctx, s)
 		}
 		return nativeDecision(ctx, s)
 	}, nil
+}
+
+func biometric(requirement string) bool {
+	return requirement == "biometric" || requirement == "biometric:separate" || requirement == "biometric:inline"
 }
 
 func sortedCredentialNames(credentials map[string]string) []string {

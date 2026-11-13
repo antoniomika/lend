@@ -107,6 +107,8 @@ func run(ctx context.Context, args []string) (int, error) {
 		}
 		who := caller.Capture(ctx, "cli")
 		return client.RunRequest(ctx, *socket, protocol.Request{Args: fs.Args(), Reason: *reason, Caller: &who}, stdin, os.Stdout, os.Stderr)
+	case "approve":
+		return approveCommand(ctx, args[1:], os.Stdin, os.Stdout, os.Stderr)
 	case "mcp":
 		fs := flag.NewFlagSet("mcp", flag.ContinueOnError)
 		socket := fs.String("socket", os.Getenv("SSH_AUTH_SOCK"), "forwarded agent socket")
@@ -153,7 +155,7 @@ func serve(ctx context.Context, args []string) (int, error) {
 	session := fs.String("session", "", "local session label shown during approval")
 	readyFD := fs.Int("_ready-fd", -1, "internal readiness pipe")
 	lifetimeFD := fs.Int("_lifetime-fd", -1, "internal parent lifetime pipe")
-	allowAll := fs.Bool("allow-all", false, "allow commands, SSH signing, and supported agent management, with approval for each operation")
+	allowAll := fs.Bool("allow-all", false, "allow commands, SSH signing, supported agent management, and approval requests, with approval for each operation")
 	approvalTimeout := fs.Duration("approval-timeout", time.Minute, "time allowed for local approval")
 	commandTimeout := fs.Duration("command-timeout", 5*time.Minute, "maximum command runtime")
 	fs.Usage = func() {
@@ -295,6 +297,9 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   lend agent (--config FILE | --allow-all) [--socket PATH] [--upstream PATH]
   lend exec [--socket PATH] [--reason TEXT] -- COMMAND [ARG...]
+  lend approve [--socket PATH] --topic NAME --title TEXT [--details TEXT | --details-file PATH] [--reason TEXT]
+  lend approve [--socket PATH] [--topic NAME] --hook claude-code|codex|agy|pi
+  lend approve [--socket PATH] --topic NAME --hook claude-compatible|json
   lend mcp [--socket PATH]
   lend keys [--socket PATH]
   lend ssh --config FILE [--profile NAME] -- HOST [COMMAND...]
@@ -303,11 +308,13 @@ func usage() {
   lend pause|resume|clear-leases [--socket PATH | --all]
   lend revoke [--socket PATH] ID
   lend explain --config FILE [--profile NAME] -- COMMAND [ARG...]
+  lend explain --config FILE [--profile NAME] --topic NAME
   lend doctor [--config FILE] [--profile NAME] [--json]
   lend doctor --remote [--socket PATH]
   lend version [--json]
 
 Run the agent on your laptop, forward its socket with SSH agent forwarding,
-then run lend exec on the remote host. Commands, SSH signatures, and agent management require local approval.
+then run lend exec on the remote host. Commands, SSH signatures, agent management, and approval requests
+require local approval.
 Use a subcommand's --help for all options.`)
 }

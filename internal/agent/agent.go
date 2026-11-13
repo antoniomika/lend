@@ -172,9 +172,15 @@ func (s *Server) handle(parent context.Context, conn net.Conn) {
 				s.execute(ctx, conn, data, packets, info)
 				return
 			}
+			if name == protocol.ApproveExtension {
+				if protocol.Write(conn, s.requestApproval(ctx, conn, data, info)) != nil {
+					return
+				}
+				continue
+			}
 			if name == "query" && len(data) == 0 {
 				reply := protocol.ExtensionPacket(protocol.ExtensionResponse, "query", nil)
-				for _, extension := range []string{"query", sshagent.SessionBind, protocol.Extension} {
+				for _, extension := range []string{"query", sshagent.SessionBind, protocol.Extension, protocol.ApproveExtension} {
 					reply = append(reply, sshagent.String([]byte(extension))...)
 				}
 				if protocol.Write(conn, reply) != nil {

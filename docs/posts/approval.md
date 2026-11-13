@@ -39,6 +39,17 @@ For both commands and SSH signatures, up to eight session-binding host-key finge
 
 Desktop prompts let you scroll through long requests. The Linux dialog requires checking the approval box before Allow once is enabled. Control characters and non-ASCII text are escaped so request fields cannot insert terminal controls or change the prompt's layout. Terminal approval requires typing the displayed `allow` phrase with its request code. Each request gets a different code to prevent stale input from approving another request.
 
+A `biometric` approval shows the request first and asks for Touch ID after you click Allow once. `biometric:inline` puts Touch ID inside the request dialog: a matching touch approves the request, Deny cancels it, and a lease is chosen with a checkbox before touching. Touch ID starts one second after the dialog opens. `biometric:separate` is the same as `biometric`. Each command rule, SSH key, and management rule picks its own style, and `default_approval` sets it for requests that no rule matches. Inline needs macOS 12 or later and falls back to the separate prompt on older versions.
+
+```json
+{
+  "commands": [
+    {"executable": "/opt/homebrew/bin/gh", "args_prefix": ["pr", "view"], "approval": "biometric:inline"},
+    {"executable": "/opt/homebrew/bin/gh", "args_prefix": ["repo", "edit"], "approval": "biometric"}
+  ]
+}
+```
+
 macOS authentication uses a fresh `LAContext` for each request. Cancellation, authentication failure, and unavailable authentication deny the request. A macOS binary built without cgo requires `--approval=terminal` for `auto` or `prompt` rules. Linux biometric integration is outside this first version.
 
 Use `lend agent --config ./policy.json --approval=terminal` to select terminal approval explicitly on either platform for `auto` or `prompt` rules. Approval reads the laptop's `/dev/tty`. The remote session cannot answer the prompt. Without a usable local desktop or controlling terminal, approval fails.

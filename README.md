@@ -476,6 +476,20 @@ The reason is required for MCP calls and appears in the laptop approval prompt b
 
 The MCP adapter supports the initialization-based stdio protocol revisions `2025-11-25` and `2025-06-18`. It does not implement the newer per-request metadata protocol, HTTP transports, resources, or prompts. It emits JSON-RPC exclusively on stdout. CLI and MCP requests use the same laptop policy and approval path.
 
+## Agent approvals
+
+`lend approve` asks the laptop for a decision without running anything there. Topics are allowed in the policy's `approvals` section, each with its own approval:
+
+```json
+{"approvals": {"topics": [{"name": "claude-code", "approval": "biometric:inline"}, {"name": "deploy", "approval": "biometric"}]}}
+```
+
+```sh
+lend approve --topic deploy --title "terraform apply (staging)" --details-file plan.txt && terraform apply plan.out
+```
+
+`lend approve --hook claude-code|codex|agy|pi` answers a coding agent's permission hook from the laptop. `--hook json` reads a neutral format that any agent can produce, and `--hook claude-compatible` serves agents that copy Claude Code's hook format. [examples/pi/lend-approval.ts](examples/pi/lend-approval.ts) is the pi extension. See [Agent approvals](https://lend.antonio.cx/agent-approvals.html) for each agent's hook configuration.
+
 ## Scope and trust
 
 This is an initial implementation for macOS and Linux. It supports pipes and binary streams. It does not allocate a PTY, forward terminal input, resize terminals, or support interactive programs such as editors. When the remote caller's stdin is a terminal, the command receives EOF; pipe or redirect input to send it to the laptop.
