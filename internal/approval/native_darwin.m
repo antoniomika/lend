@@ -30,7 +30,10 @@ static NSScrollView *lend_request_view(const char *message, NSRect frame) {
     text.string = [NSString stringWithUTF8String:message];
     text.verticallyResizable = YES;
     scroll.documentView = text;
-    [text scrollRangeToVisible:NSMakeRange(0, 0)];
+    // NSAlert lays out after this returns, so scroll once the dialog is running.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [text scrollPoint:NSZeroPoint];
+    });
     return scroll;
 }
 
@@ -71,19 +74,24 @@ static int lend_approve_inline(const char *message, const char *lease) API_AVAIL
     // The glyph draws at its own size, so the frame has to match it.
     NSSize glyph = touch.intrinsicContentSize;
     if (glyph.width <= 0 || glyph.height <= 0) { glyph = NSMakeSize(64, 64); }
-    touch.frame = NSMakeRect(0, y, glyph.width, glyph.height);
-    [container addSubview:touch];
+    // A centered column under the request lines up with the centered Deny button.
     NSTextField *hint = [NSTextField labelWithString:@"Touch ID to allow"];
     hint.font = [NSFont systemFontOfSize:[NSFont systemFontSize] weight:NSFontWeightMedium];
-    hint.frame = NSMakeRect(glyph.width + 12, y + (glyph.height - 20) / 2, width - glyph.width - 12, 20);
+    hint.alignment = NSTextAlignmentCenter;
+    hint.frame = NSMakeRect(0, y, width, 20);
     [container addSubview:hint];
+    y += 24;
+    touch.frame = NSMakeRect((width - glyph.width) / 2, y, glyph.width, glyph.height);
+    [container addSubview:touch];
     y += glyph.height + 12;
     NSButton *leaseBox = nil;
     if (lease) {
         leaseBox = [NSButton checkboxWithTitle:[NSString stringWithUTF8String:lease] target:nil action:nil];
-        leaseBox.frame = NSMakeRect(0, y, width, 20);
+        [leaseBox sizeToFit];
+        NSSize box = leaseBox.frame.size;
+        leaseBox.frame = NSMakeRect((width - box.width) / 2, y, box.width, box.height);
         [container addSubview:leaseBox];
-        y += 28;
+        y += box.height + 12;
     }
     [container addSubview:lend_request_view(message, NSMakeRect(0, y, width, scrollHeight))];
     container.frame = NSMakeRect(0, 0, width, y + scrollHeight);
