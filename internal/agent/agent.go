@@ -329,6 +329,7 @@ func (s *Server) execute(parent context.Context, conn net.Conn, data []byte, pac
 		return
 	}
 	if rule.Name != "" {
+		request.Args = append([]string(nil), request.Args...)
 		request.Args[0] = rule.Name
 		summary.Args = request.Args
 	}

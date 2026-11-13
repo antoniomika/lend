@@ -564,6 +564,39 @@ func TestMatchedRuleSetsArgv0(t *testing.T) {
 	}
 }
 
+func TestMatchedRuleArgv0WithConcurrentActivityReads(t *testing.T) {
+	h, _ := startServer(t, func(context.Context, approval.Summary) error {
+		return errors.New("denied")
+	}, "", time.Second)
+	path, err := exec.LookPath("true")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(policy.Policy{Commands: []policy.Rule{{Executable: path, Approval: "prompt"}}})
+	h.server.Policy, err = policy.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for ctx.Err() == nil {
+			if _, err := json.Marshal(h.server.Activity.Snapshot(false)); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+	defer func() { cancel(); <-done }()
+	for i := 0; i < 200; i++ {
+		if _, err := h.run(context.Background(), []string{"true"}, strings.NewReader(""), io.Discard, io.Discard); err == nil {
+			t.Fatal("denied command succeeded")
+		}
+	}
+}
+
 // TestPrintArgv0Fixture runs as the approved command and reports the argv[0] it received.
 func TestPrintArgv0Fixture(t *testing.T) {
 	if os.Getenv("LEND_TEST_PRINT_ARGV0") == "" {
