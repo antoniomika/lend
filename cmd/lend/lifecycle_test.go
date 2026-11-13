@@ -80,7 +80,8 @@ func TestSupervisedSessionLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer upstream.Close()
-	executable := filepath.Join(root, "lend")
+	// XDG_RUNTIME_DIR is root, so root/lend is the session socket directory.
+	executable := filepath.Join(root, "lend-bin")
 	build := exec.Command("go", "build", "-buildvcs=false", "-o", executable, ".")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build: %v %s", err, output)
