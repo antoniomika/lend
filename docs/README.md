@@ -43,4 +43,4 @@ For pgs.sh, configure the same Actions secrets used by sish:
 
 After reviewing the generated artifact, manually run the Docs workflow from `main` with `publish` enabled. It uploads a versioned `lend-COMMIT` project and promotes it to `lend-prod`. The action retains Lend projects by the `lend-` prefix. The hosting account and its DNS configuration determine the public URL.
 
-The workflow is prepared locally. No site or domain is created by building the documentation. To use a different static host, upload the contents of `docs/public` to that host's document root.
+Building the documentation does not publish it. To use a different static host, upload the contents of `docs/public` to that host's document root.

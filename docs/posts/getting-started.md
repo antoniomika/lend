@@ -6,13 +6,15 @@ toc: true
 
 ## Install on both machines
 
-Install `lend` on the laptop and the remote host. The [installation guide](/installation.html) covers Homebrew, release binaries, and source builds. Until the first release is published, build from source:
+Install `lend` on the laptop and the remote host with Homebrew or the release installer. The [installation guide](/installation.html) also covers pinned versions, manual downloads, and source builds.
 
 ```sh
-go build -buildvcs=false -o bin/lend ./cmd/lend
+brew install antoniomika/tap/lend
+# or
+curl -fsSL https://github.com/antoniomika/lend/releases/latest/download/install.sh | sh
 ```
 
-Put the binary on each machine's `PATH`. On macOS, build with `CGO_ENABLED=1` and the Xcode Command Line Tools installed for native approval and Touch ID. The remote host needs Lend and SSH access. Configure tools such as `gh`, `op`, and your existing SSH agent on the laptop.
+The remote host needs Lend and SSH access. Configure tools such as `gh`, `op`, and your existing SSH agent on the laptop.
 
 ## Write a local policy
 

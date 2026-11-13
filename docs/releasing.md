@@ -1,6 +1,6 @@
 # Releasing
 
-CI and publishing are separate workflows. Nothing has been published by preparing these files.
+CI and publishing are separate workflows.
 
 ## CI
 
