@@ -29,12 +29,26 @@ static NSScrollView *lend_request_view(const char *message, NSRect frame) {
     text.textContainerInset = NSMakeSize(6, 6);
     text.string = [NSString stringWithUTF8String:message];
     text.verticallyResizable = YES;
+    // Setting the string leaves the selection at the end, and the dialog scrolls to it on focus.
+    text.selectedRange = NSMakeRange(0, 0);
     scroll.documentView = text;
-    // NSAlert lays out after this returns, so scroll once the dialog is running.
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [text scrollPoint:NSZeroPoint];
-    });
     return scroll;
+}
+
+static void lend_scroll_to_top(NSScrollView *scroll) {
+    NSTextView *text = scroll.documentView;
+    [text.layoutManager ensureLayoutForTextContainer:text.textContainer];
+    text.selectedRange = NSMakeRange(0, 0);
+    [scroll.contentView scrollToPoint:NSZeroPoint];
+    [scroll reflectScrolledClipView:scroll.contentView];
+}
+
+static NSModalResponse lend_run_alert(NSAlert *alert, NSScrollView *scroll) {
+    [alert layout];
+    lend_scroll_to_top(scroll);
+    // Showing the window can scroll again, so repeat once the modal loop is running.
+    dispatch_async(dispatch_get_main_queue(), ^{ lend_scroll_to_top(scroll); });
+    return [alert runModal];
 }
 
 // An unbundled helper otherwise gets the generic folder icon.
@@ -93,7 +107,8 @@ static int lend_approve_inline(const char *message, const char *lease) API_AVAIL
         [container addSubview:leaseBox];
         y += box.height + 12;
     }
-    [container addSubview:lend_request_view(message, NSMakeRect(0, y, width, scrollHeight))];
+    NSScrollView *request = lend_request_view(message, NSMakeRect(0, y, width, scrollHeight));
+    [container addSubview:request];
     container.frame = NSMakeRect(0, 0, width, y + scrollHeight);
     alert.accessoryView = container;
 
@@ -115,7 +130,7 @@ static int lend_approve_inline(const char *message, const char *lease) API_AVAIL
                     });
                 }];
     });
-    NSModalResponse choice = [alert runModal];
+    NSModalResponse choice = lend_run_alert(alert, request);
     done = YES;
     [context invalidate];
     if (choice == lendInlineOnce) { return 1; }
@@ -140,8 +155,9 @@ int lend_approve(const char *message, int requirement, const char *lease, int in
         [alert addButtonWithTitle:@"Deny"];
         [alert addButtonWithTitle:@"Allow once"];
         if (lease) { [alert addButtonWithTitle:@"Allow lease"]; }
-        alert.accessoryView = lend_request_view(message, NSMakeRect(0, 0, 680, 360));
-        NSModalResponse choice = [alert runModal];
+        NSScrollView *request = lend_request_view(message, NSMakeRect(0, 0, 680, 360));
+        alert.accessoryView = request;
+        NSModalResponse choice = lend_run_alert(alert, request);
         int decision = choice == NSAlertSecondButtonReturn ? 1 : (lease && choice == NSAlertThirdButtonReturn ? 2 : 0);
         if (!decision) { return 0; }
         if (requirement == 0) { return decision; }
