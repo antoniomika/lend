@@ -1,0 +1,19 @@
+{{template "base" .}}
+{{define "body"}}
+<main id="main" class="sitemap-page" tabindex="-1">
+  <div class="page-heading"><h1>{{.Data.Title}}</h1><p>{{.Data.Description}}</p></div>
+  <div class="sitemap-grid">
+    {{range .Sitemap.Children}}
+    {{if and .Children (not .Page)}}
+    <section class="box">
+      <h2>{{.Text}}</h2>
+      <ul>
+        {{range .Children}}<li><a href="{{.GenHref}}">{{.Text}}</a></li>{{end}}
+      </ul>
+    </section>
+    {{end}}
+    {{end}}
+  </div>
+  {{template "footer" .}}
+</main>
+{{end}}

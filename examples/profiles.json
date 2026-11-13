@@ -1,0 +1,52 @@
+{
+  "default": "deny",
+  "profiles": {
+    "development": {
+      "default": "deny",
+      "require_reason": true,
+      "secret_reader": "/opt/homebrew/bin/op",
+      "history": {
+        "path": "/Users/you/.lend/history/development.jsonl"
+      },
+      "commands": [
+        {
+          "executable": "/opt/homebrew/bin/gh",
+          "args_prefix": ["pr", "view"],
+          "approval": "biometric",
+          "lease": {"duration": "5m", "uses": 3},
+          "secrets": {"GH_TOKEN": "op://Development/github/token"}
+        }
+      ],
+      "ssh": {
+        "default": "deny",
+        "keys": [
+          {
+            "fingerprint": "SHA256:REPLACE_WITH_FINGERPRINT_FROM_LEND_KEYS",
+            "label": "Development",
+            "approval": "biometric",
+            "purposes": ["ssh", "sshsig"],
+            "namespaces": ["git"],
+            "max_signatures": 10,
+            "lease": {"duration": "1m", "uses": 3}
+          }
+        ]
+      }
+    },
+    "cluster": {
+      "default": "deny",
+      "require_reason": true,
+      "commands": [],
+      "ssh": {
+        "default": "deny",
+        "keys": [
+          {
+            "fingerprint": "SHA256:REPLACE_WITH_CLUSTER_KEY_FINGERPRINT",
+            "label": "Cluster",
+            "approval": "biometric",
+            "purposes": ["ssh"]
+          }
+        ]
+      }
+    }
+  }
+}

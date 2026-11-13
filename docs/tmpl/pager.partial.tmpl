@@ -1,0 +1,6 @@
+{{define "pager"}}
+<nav class="pager" aria-label="Previous and next pages">
+  <div>{{if .Prev}}<span>Previous</span><a rel="prev" href="{{.Prev.GenHref}}">{{.Prev.Text}}</a>{{end}}</div>
+  <div>{{if .Next}}<span>Next</span><a rel="next" href="{{.Next.GenHref}}">{{.Next.Text}}</a>{{end}}</div>
+</nav>
+{{end}}

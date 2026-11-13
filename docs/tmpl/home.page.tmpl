@@ -1,0 +1,61 @@
+{{template "base" .}}
+{{define "body"}}
+<main id="main" class="home" tabindex="-1">
+  <section class="hero" aria-labelledby="hero-title">
+    <h1 id="hero-title" class="logo-header">lend</h1>
+    <p class="tagline">Remote commands, approved on your laptop</p>
+    <p class="hero-description">Give a remote shell or coding agent access to selected commands and SSH keys on your laptop. Review each request where your credentials live.</p>
+    <div class="hero-actions">
+      <a href="/getting-started.html" class="btn-link">GET STARTED</a>
+      <a href="/how-it-works.html">How it works</a>
+    </div>
+    <p class="platforms">macOS + Linux &middot; CLI + MCP &middot; Go</p>
+  </section>
+
+  <section class="features" aria-label="Features">
+    <div class="box">
+      <h2>Commands on your laptop</h2>
+      <p>Keep tools such as <code>gh</code> and <code>op</code> local. Remote requests return streamed output and the command's exit code.</p>
+      <a href="/command-policy.html">Command policy</a>
+    </div>
+    <div class="box">
+      <h2>Your SSH agent, with approval</h2>
+      <p>Select which keys are visible and how they can sign. Lend checks each request before passing it to your existing agent.</p>
+      <a href="/ssh-keys.html">SSH key rules</a>
+    </div>
+    <div class="box">
+      <h2>Review access locally</h2>
+      <p>Use Touch ID on macOS or a local prompt on Linux. See the request, its reason, and reported caller context before you allow it.</p>
+      <a href="/approval.html">Approval and callers</a>
+    </div>
+  </section>
+
+  <section class="home-demo" aria-labelledby="demo-title">
+    <h2 id="demo-title">Connect, request, approve</h2>
+    <div class="terminal-pair">
+      <div class="terminal">
+        <p class="terminal-label">ON YOUR LAPTOP</p>
+        <pre><code>lend ssh --config ./policy.json -- agent-vm</code></pre>
+      </div>
+      <div class="terminal">
+        <p class="terminal-label">ON THE REMOTE HOST</p>
+        <pre><code>lend exec --reason "Inspect the pull request" -- \
+  gh pr view 123 --repo example/project</code></pre>
+      </div>
+    </div>
+    <p class="demo-caption">The laptop checks the policy and asks for approval. <code>gh</code> runs locally and sends its result back over the forwarded SSH agent socket.</p>
+    <a href="/getting-started.html">Set up your first session</a>
+  </section>
+
+  <section class="home-guides" aria-labelledby="guides-title">
+    <h2 id="guides-title">Control the session</h2>
+    <div class="guide-grid">
+      <a href="/sessions.html"><span>Sessions and leases</span><small>Separate policies and bounded grants per SSH connection.</small></a>
+      <a href="/mcp.html"><span>Connect a coding agent</span><small>One MCP tool for requesting local commands with a reason.</small></a>
+      <a href="/activity.html"><span>Watch and revoke access</span><small>Inspect activity, pause sessions, and clear approval grants.</small></a>
+      <a href="/doctor.html"><span>Check your setup</span><small>Diagnose policy, approval, and forwarding problems.</small></a>
+    </div>
+  </section>
+  {{template "footer" .}}
+</main>
+{{end}}

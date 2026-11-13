@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, such as v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+      commit: ${{ steps.metadata.outputs.commit }}
+      date: ${{ steps.metadata.outputs.date }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Validate release metadata
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          import sys
+          sys.path.insert(0, "scripts")
+          from release import release_version
+          tag = release_version(os.environ["RELEASE_TAG"])
+          commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tagged = subprocess.check_output(["git", "rev-parse", f"refs/tags/{tag}^{{commit}}"], text=True).strip()
+          if tagged != commit:
+              raise SystemExit("checkout does not match the release tag")
+          date = subprocess.check_output(["git", "show", "-s", "--format=%cI", "HEAD"], text=True).strip()
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"tag={tag}\ncommit={commit}\ndate={date}\n")
+          PY
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            os: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+          - runner: macos-15
+            os: darwin
+            arch: arm64
+          - runner: macos-15-intel
+            os: darwin
+            arch: amd64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: false
+      - run: go test -race ./...
+      - name: Build native archive
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          LEND_COMMIT: ${{ needs.prepare.outputs.commit }}
+          LEND_DATE: ${{ needs.prepare.outputs.date }}
+          RELEASE_OS: ${{ matrix.os }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: python3 scripts/release.py build --version "$RELEASE_TAG" --os "$RELEASE_OS" --arch "$RELEASE_ARCH"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  draft:
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums and Homebrew formula
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          python3 scripts/release.py finalize --version "$RELEASE_TAG"
+          cd dist
+          sha256sum --check checksums.txt
+          ruby -c lend.rb
+      - name: Create draft release for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          release_flags=(--draft)
+          case "$RELEASE_TAG" in *-*) release_flags+=(--prerelease) ;; esac
+          gh release create "$RELEASE_TAG" --verify-tag "${release_flags[@]}" --title "$RELEASE_TAG" --notes-file docs/release-notes.md dist/*

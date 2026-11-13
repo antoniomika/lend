@@ -1,0 +1,30 @@
+{{define "sitemap-links"}}
+  <ul class="sidebar-list">
+    {{range .Sitemap.Children}}
+    <li>
+      {{if .Href}}
+      <a href="{{.GenHref}}" {{if eq $.Href .Href}}aria-current="page"{{end}}>{{.Text}}</a>
+      {{else}}
+      <span class="nav-group">{{.Text}}</span>
+      {{end}}
+      {{if and .Children (not .Page)}}
+      <ul class="sidebar-list">
+        {{range .Children}}
+        <li><a href="{{.GenHref}}" {{if eq $.Href .Href}}aria-current="page"{{end}}>{{.Text}}</a></li>
+        {{end}}
+      </ul>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+{{end}}
+
+{{define "sidebar"}}
+<aside class="sidebar">
+  <nav class="desktop-nav" aria-label="Documentation">{{template "sitemap-links" .}}</nav>
+  <details class="mobile-nav">
+    <summary>Documentation menu</summary>
+    <nav aria-label="Documentation">{{template "sitemap-links" .}}</nav>
+  </details>
+</aside>
+{{end}}

@@ -1,0 +1,75 @@
+name: Update Homebrew tap
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag whose formula you have reviewed
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check release and download reviewed formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          sys.path.insert(0, "scripts")
+          from release import release_version
+          tag = release_version(os.environ["RELEASE_TAG"])
+          info = json.loads(subprocess.check_output(["gh", "release", "view", tag, "--json", "isDraft,isPrerelease"], text=True))
+          if "-" in tag or info["isDraft"] or info["isPrerelease"]:
+              raise SystemExit("Homebrew requires a published stable release")
+          PY
+          gh release download "$RELEASE_TAG" --pattern lend.rb --pattern checksums.txt --dir formula
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          entries = [line.split() for line in Path("formula/checksums.txt").read_text().splitlines()]
+          expected = [fields[0] for fields in entries if len(fields) == 2 and fields[1] == "lend.rb"]
+          actual = hashlib.sha256(Path("formula/lend.rb").read_bytes()).hexdigest()
+          if expected != [actual]:
+              raise SystemExit("Homebrew formula checksum mismatch")
+          PY
+          ruby -c formula/lend.rb
+      - name: Check tap credentials
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: test -n "$TAP_TOKEN" || { printf '%s\n' 'Set HOMEBREW_TAP_TOKEN with contents write access to the tap repo.' >&2; exit 1; }
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ vars.HOMEBREW_TAP || 'antoniomika/homebrew-tap' }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - name: Commit the reviewed formula
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p tap/Formula
+          cp formula/lend.rb tap/Formula/lend.rb
+          cd tap
+          git config user.name lend-release
+          git config user.email lend-release@users.noreply.github.com
+          git add Formula/lend.rb
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(homebrew): update lend $RELEASE_TAG"
+          git push

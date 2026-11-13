@@ -1,0 +1,18 @@
+{{template "base" .}}
+{{define "body"}}
+<div class="docs-layout">
+  {{template "sidebar" .}}
+  <main id="main" class="post" tabindex="-1">
+    <div class="page-heading">
+      <h1>{{.Data.Title}}</h1>
+      <p>{{.Data.Description}}</p>
+    </div>
+    {{if .Data.TocHtml}}
+    <details class="on-this-page"><summary>On this page</summary>{{.Data.TocHtml}}</details>
+    {{end}}
+    <article class="md">{{.Data.Html}}</article>
+    {{template "pager" .}}
+    {{template "footer" .}}
+  </main>
+</div>
+{{end}}

@@ -1,0 +1,139 @@
+:root {
+  --line-height: 1.6rem;
+}
+
+body {
+  max-width: 72rem;
+  padding: 0 1.5rem;
+}
+
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--link-color);
+  outline-offset: 4px;
+}
+
+[tabindex="-1"]:focus { outline: none; }
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-color);
+  z-index: 10;
+}
+
+.skip-link:focus { top: 0.5rem; }
+
+.site-header {
+  border-bottom: 1px solid var(--grey);
+}
+
+.site-nav, .nav-links, .site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.site-nav { min-height: 4.5rem; }
+.nav-links { font-family: var(--font-mono); font-size: 0.9rem; }
+.site-nav a, .site-footer a { text-decoration: none; }
+.site-nav a:hover, .site-footer a:hover { text-decoration: underline; }
+.brand { font-family: var(--font-mono); font-weight: 700; font-size: 1.2rem; }
+
+.hero {
+  text-align: center;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 5rem 0 3rem;
+}
+
+.hero .logo-header { font-size: 3.5rem; }
+.tagline { font-size: clamp(1.5rem, 4vw, 2.15rem); line-height: 1.4; margin-bottom: 1rem; }
+.hero-description { max-width: 39rem; margin: 0 auto 1.75rem; color: var(--muted); }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1.5rem; }
+.platforms { font: 0.8rem var(--font-mono); color: var(--muted); margin-top: 1.75rem; }
+
+.features, .guide-grid, .sitemap-grid { display: grid; gap: 1rem; }
+.features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.box { padding: 1.5rem; border-color: var(--grey); }
+.features h2, .sitemap-grid h2 { margin-top: 0; font-size: 1rem; line-height: 1.6; }
+.features p { color: var(--muted); }
+.features a { font-size: 0.9rem; }
+.home-demo { margin-top: 4rem; }
+.home-demo > h2, .home-guides > h2 { margin-bottom: 1.5rem; }
+.terminal-pair { display: grid; gap: 1rem; }
+.terminal { min-width: 0; border: 1px solid var(--grey); background: var(--pre); }
+.terminal-label { font: 0.7rem var(--font-mono); letter-spacing: 0.06em; color: var(--muted); padding: 0.8rem 1.2rem; margin: 0; border-bottom: 1px solid var(--grey); }
+.terminal pre { margin: 0; padding: 1.2rem; font-size: 0.9rem; }
+.demo-caption { max-width: 50rem; color: var(--muted); }
+.home-guides { margin-top: 3rem; }
+.guide-grid, .sitemap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.guide-grid a { border-top: 1px solid var(--grey); padding: 1rem 0; text-decoration: none; }
+.guide-grid a:hover span { text-decoration: underline; }
+.guide-grid small { display: block; color: var(--muted); margin-top: 0.5rem; }
+.site-footer { margin-top: 3rem; border-top: 1px solid var(--grey); padding: 1.5rem 0; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; }
+
+.docs-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 3rem; align-items: start; }
+.sidebar { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 2rem 1rem 2rem 0; border-right: 1px solid var(--grey); font-size: 0.85rem; }
+.sidebar-list { padding: 0; margin: 0; list-style: none; }
+.sidebar-list ul { margin: 0.4rem 0 1.5rem; }
+.sidebar-list li { margin: 0.15rem 0; }
+.sidebar-list a { display: block; padding: 0.25rem 0.6rem; border-radius: 3px; text-decoration: none; color: var(--muted); }
+.sidebar-list a:hover, .sidebar-list a[aria-current="page"] { background: var(--selected); color: var(--text-color); }
+.sidebar-list a[aria-current="page"] { box-shadow: inset 2px 0 var(--link-color); }
+.nav-group { display: block; padding: 0.5rem 0.6rem 0; font: 0.75rem var(--font-mono); color: var(--text-color); font-weight: 700; }
+.mobile-nav { display: none; }
+.post { min-width: 0; max-width: 49rem; padding-top: 2rem; }
+.page-heading { border-bottom: 1px solid var(--grey); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+.page-heading h1 { margin-top: 0; font-size: 1.9rem; line-height: 1.4; }
+.page-heading p { color: var(--muted); margin: 0.75rem 0 0; }
+.md { overflow-wrap: break-word; }
+.md > h2 { line-height: 1.5; }
+.md > table { display: block; overflow-x: auto; border-collapse: collapse; }
+.md td, .md th { padding: 0.65rem; border: 1px solid var(--grey); vertical-align: top; }
+.md code { font-size: 0.85em; }
+.md pre code { font-size: inherit; }
+.md a > code { color: inherit; }
+.md pre, .md .highlight { max-width: 100%; overflow-x: auto; }
+.md .chroma { margin: 0; font-size: 0.8rem; }
+.md .lntable { border-spacing: 0; width: 100%; }
+.md .lntable td { padding: 0; border: 0; }
+.md .lntable td:first-child { width: 1%; }
+.md .lntable pre { padding: 0.75rem; }
+.md .lntable td:first-child pre { padding-right: 0; user-select: none; }
+.md .lntable .lnt { color: var(--muted); }
+.md img { height: auto; }
+.md h2, .md h3 { scroll-margin-top: 1rem; }
+.on-this-page { margin-bottom: 2rem; font-size: 0.85rem; border: 1px solid var(--grey); }
+.on-this-page ul { padding-left: 1.25rem; }
+.on-this-page > ul { margin-bottom: 0.25rem; }
+.pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--grey); }
+.pager div:last-child { text-align: right; }
+.pager span { display: block; font: 0.75rem var(--font-mono); color: var(--muted); margin-bottom: 0.5rem; }
+.sitemap-page { max-width: 60rem; margin: 3rem auto 0; }
+.sitemap-grid ul { padding-left: 1.25rem; }
+.sitemap-grid li { margin-top: 0.5rem; }
+
+@media (max-width: 850px) {
+  .docs-layout { grid-template-columns: 12rem minmax(0, 1fr); gap: 1.5rem; }
+  .features { grid-template-columns: 1fr; }
+  .hero { padding-top: 3rem; }
+}
+
+@media (max-width: 640px) {
+  body { padding: 0 1rem; }
+  .site-nav, .nav-links { gap: 1rem; }
+  .nav-links { font-size: 0.8rem; }
+  .docs-layout { display: block; }
+  .sidebar { position: static; max-height: none; padding: 1rem 0 0; border: 0; }
+  .desktop-nav { display: none; }
+  .mobile-nav { display: block; border: 1px solid var(--grey); margin: 0; }
+  .mobile-nav nav { padding-top: 1rem; }
+  .post { padding-top: 1.5rem; }
+  .page-heading h1 { font-size: 1.6rem; }
+  .guide-grid, .sitemap-grid { grid-template-columns: 1fr; }
+  .terminal pre { font-size: 0.8rem; }
+  .hero { padding-top: 2.5rem; }
+}

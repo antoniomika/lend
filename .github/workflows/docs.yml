@@ -1,0 +1,75 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - examples/**
+      - scripts/check_docs.py
+      - Makefile
+      - .github/workflows/docs.yml
+  pull_request:
+    paths:
+      - docs/**
+      - examples/**
+      - scripts/check_docs.py
+      - Makefile
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the reviewed docs to pgs.sh and promote lend-prod
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: docs/go.mod
+          cache-dependency-path: docs/go.sum
+      - run: make docs-check
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lend-docs
+          path: docs/public/
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: lend-docs
+          path: docs/public
+      - name: Project name
+        id: project
+        env:
+          COMMIT: ${{ github.sha }}
+        run: printf 'name=lend-%s\n' "$COMMIT" >> "$GITHUB_OUTPUT"
+      - name: Publish reviewed docs
+        uses: picosh/pgs-action@c5df20361f1c69112625315d7f2bf9c3eec95ff1 # v5
+        with:
+          key: ${{ secrets.PRIVATE_KEY }}
+          cert_pubkey: ${{ secrets.CERT_PUBKEY }}
+          src: ./docs/public/
+          project: ${{ steps.project.outputs.name }}
+          promote: lend-prod
+          retain: lend-

@@ -1,0 +1,46 @@
+{
+  "default": "deny",
+  "require_reason": true,
+  "commands": [
+    {
+      "executable": "/opt/homebrew/bin/op",
+      "args_prefix": ["read"],
+      "approval": "biometric"
+    },
+    {
+      "executable": "/opt/homebrew/bin/gh",
+      "args_prefix": ["pr", "view"],
+      "approval": "prompt"
+    }
+  ],
+  "ssh": {
+    "default": "deny",
+    "keys": [
+      {
+        "fingerprint": "SHA256:REPLACE_WITH_FINGERPRINT_FROM_LEND_KEYS",
+        "label": "SSH login and Git signing",
+        "approval": "biometric",
+        "purposes": ["ssh", "sshsig"],
+        "namespaces": ["git"],
+        "max_signatures": 10
+      }
+    ],
+    "management": {
+      "default": "deny",
+      "operations": [
+        {
+          "operation": "add-key",
+          "approval": "biometric",
+          "fingerprints": ["SHA256:REPLACE_WITH_FINGERPRINT_FROM_LEND_KEYS"]
+        },
+        {
+          "operation": "remove-key",
+          "approval": "biometric",
+          "fingerprints": ["SHA256:REPLACE_WITH_FINGERPRINT_FROM_LEND_KEYS"]
+        },
+        {"operation": "lock", "approval": "biometric"},
+        {"operation": "unlock", "approval": "biometric"}
+      ]
+    }
+  }
+}

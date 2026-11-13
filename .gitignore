@@ -1,0 +1,5 @@
+/bin/
+/dist/
+__pycache__/
+/docs/public/
+/docs/.build-*/
