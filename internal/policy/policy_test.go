@@ -15,7 +15,12 @@ func executable(t *testing.T) string {
 	if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	return path
+	// Callers pass canonical paths, and macOS temp dirs sit under the /var symlink.
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resolved
 }
 
 func parsePolicy(t *testing.T, p Policy) *Policy {

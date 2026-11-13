@@ -64,7 +64,8 @@ func TestSSHSubprocessFixture(t *testing.T) {
 }
 
 func TestSupervisedSessionLifecycle(t *testing.T) {
-	root, err := os.MkdirTemp("", "lend-lifecycle-")
+	// macOS TMPDIR is deep enough to push session sockets past the 104-byte sun_path limit.
+	root, err := os.MkdirTemp("/tmp", "lend-")
 	if err != nil {
 		t.Fatal(err)
 	}
