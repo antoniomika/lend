@@ -43,6 +43,25 @@ func waitStage(t *testing.T, s *Server, stage string, count int) {
 	}
 }
 
+func waitNoStage(t *testing.T, s *Server, stage string) {
+	t.Helper()
+	deadline := time.After(2 * time.Second)
+	for {
+		found := false
+		for _, entry := range s.Activity.Snapshot(false).Active {
+			found = found || entry.State == stage
+		}
+		if !found {
+			return
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("%s requests did not leave", stage)
+		case <-time.After(time.Millisecond):
+		}
+	}
+}
+
 func commandLeasePolicy(t *testing.T, lease *policy.Lease, secrets map[string]string, reader string) *policy.Policy {
 	t.Helper()
 	path, err := exec.LookPath("sh")
@@ -321,6 +340,8 @@ func TestQueuedRequestCancellationDoesNotPrompt(t *testing.T) {
 	if err := <-done; err == nil {
 		t.Fatal("cancelled request succeeded")
 	}
+	// The client returns before the server sees the disconnect, so wait for the queue to drop it.
+	waitNoStage(t, h.server, "queued")
 	first.Close()
 	select {
 	case <-entered:
