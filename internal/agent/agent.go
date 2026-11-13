@@ -328,6 +328,10 @@ func (s *Server) execute(parent context.Context, conn net.Conn, data []byte, pac
 		reject()
 		return
 	}
+	if rule.Name != "" {
+		request.Args[0] = rule.Name
+		summary.Args = request.Args
+	}
 
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()

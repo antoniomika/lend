@@ -529,3 +529,46 @@ func TestUnixListenerExecutionAndShutdown(t *testing.T) {
 		t.Fatal("socket was not removed")
 	}
 }
+
+func TestMatchedRuleSetsArgv0(t *testing.T) {
+	var prompted []string
+	h, _ := startServer(t, func(_ context.Context, s approval.Summary) error {
+		prompted = s.Args
+		return nil
+	}, "", 5*time.Second)
+	t.Setenv("LEND_TEST_PRINT_ARGV0", "1")
+	t.Setenv("GORACE", "atexit_sleep_ms=0")
+	target, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	allowed, other := filepath.Join(dir, "allowed"), filepath.Join(dir, "other")
+	for _, alias := range []string{allowed, other} {
+		if err := os.Symlink(target, alias); err != nil {
+			t.Fatal(err)
+		}
+	}
+	data, _ := json.Marshal(policy.Policy{Commands: []policy.Rule{{Executable: allowed, Approval: "prompt"}}})
+	h.server.Policy, err = policy.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	code, err := h.run(context.Background(), []string{other, "-test.run=^TestPrintArgv0Fixture$"}, strings.NewReader(""), &out, io.Discard)
+	if err != nil || code != 0 || out.String() != allowed {
+		t.Fatalf("code=%d err=%v argv0=%q", code, err, out.String())
+	}
+	if len(prompted) == 0 || prompted[0] != allowed {
+		t.Fatalf("prompt showed %q", prompted)
+	}
+}
+
+// TestPrintArgv0Fixture runs as the approved command and reports the argv[0] it received.
+func TestPrintArgv0Fixture(t *testing.T) {
+	if os.Getenv("LEND_TEST_PRINT_ARGV0") == "" {
+		t.Skip("subprocess fixture")
+	}
+	os.Stdout.WriteString(os.Args[0])
+	os.Exit(0)
+}

@@ -116,3 +116,19 @@ func TestInvalidPolicies(t *testing.T) {
 		}
 	}
 }
+
+func TestExplainReportsConfiguredArgv0(t *testing.T) {
+	path := executable(t)
+	alias := filepath.Join(t.TempDir(), "alias")
+	if err := os.Symlink(path, alias); err != nil {
+		t.Fatal(err)
+	}
+	p := parsePolicy(t, Policy{Commands: []Rule{{Executable: alias, Approval: "prompt"}}})
+	if got := p.Explain(t.TempDir(), protocol.Request{Args: []string{path}}); !got.Allowed || got.Argv0 != alias {
+		t.Fatalf("%+v", got)
+	}
+	open := parsePolicy(t, Policy{Default: "allow"})
+	if got := open.Explain(t.TempDir(), protocol.Request{Args: []string{path}}); !got.Allowed || got.Argv0 != "" {
+		t.Fatalf("%+v", got)
+	}
+}

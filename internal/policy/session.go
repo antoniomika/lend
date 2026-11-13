@@ -90,6 +90,7 @@ type Explanation struct {
 	MatchedRule         string   `json:"matched_rule,omitempty"`
 	Allowed             bool     `json:"allowed"`
 	Executable          string   `json:"executable,omitempty"`
+	Argv0               string   `json:"argv0,omitempty"`
 	Approval            string   `json:"approval,omitempty"`
 	MatchedPrefix       []string `json:"matched_prefix,omitempty"`
 	Lease               *Lease   `json:"lease,omitempty"`
@@ -109,6 +110,7 @@ func (p *Policy) Explain(directory string, request protocol.Request) Explanation
 		if err == nil {
 			result.Allowed = true
 			result.MatchedRule = rule.Source
+			result.Argv0 = rule.Name
 			result.Approval = rule.Approval
 			result.MatchedPrefix = rule.ArgsPrefix
 			result.Lease = rule.Lease

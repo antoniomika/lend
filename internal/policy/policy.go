@@ -21,6 +21,8 @@ type Rule struct {
 	Approval   string            `json:"approval"`
 	Lease      *Lease            `json:"lease,omitempty"`
 	Secrets    map[string]string `json:"secrets,omitempty"`
+	// Name is the configured path, used as argv[0] so multi-call binaries act as the approved alias.
+	Name string `json:"-"`
 }
 
 type Policy struct {
@@ -119,6 +121,7 @@ func (p *Policy) validate(nested bool) error {
 		if err != nil {
 			return fmt.Errorf("resolve policy executable: %w", err)
 		}
+		rule.Name = rule.Executable
 		rule.Executable = resolved
 		if !validApproval(rule.Approval) {
 			return fmt.Errorf("invalid approval %q", rule.Approval)

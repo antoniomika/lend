@@ -131,7 +131,7 @@ Start the laptop agent with either `--config FILE` or `--allow-all`. A config de
 }
 ```
 
-Executable paths are absolute and resolved through symlinks when loading the policy and when receiving a request. Prefixes match complete arguments: `["pr", "view"]` allows further arguments after those two. The longest matching prefix determines approval. An omitted prefix permits every argument to that executable. Duplicate rules and unknown config fields are rejected. Policy changes take effect after restarting the agent.
+Executable paths are absolute and resolved through symlinks when loading the policy and when receiving a request. A matched rule runs the program with its configured path as `argv[0]`, so a multi-call binary behaves as the alias you allowed. Prefixes match complete arguments: `["pr", "view"]` allows further arguments after those two. The longest matching prefix determines approval. An omitted prefix permits every argument to that executable. Duplicate rules and unknown config fields are rejected. Policy changes take effect after restarting the agent.
 
 | Approval | Requirement |
 | --- | --- |
