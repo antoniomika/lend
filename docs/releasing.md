@@ -10,7 +10,13 @@ The installer tests use local download fixtures. They exercise platform selectio
 
 ## Release artifacts
 
-`.github/workflows/release.yml` runs when a `v*` tag is pushed, or when manually dispatched for an existing tag. Tags must use `vMAJOR.MINOR.PATCH` with an optional prerelease suffix. The workflow validates the tag and builds the same commit on four native runners:
+Publishing a GitHub release starts `.github/workflows/release.yml`. `gh release create` publishes the release and creates its tag in one step:
+
+```sh
+gh release create v0.1.0 --target main --title v0.1.0 --notes-file docs/release-notes.md
+```
+
+Tags must use `vMAJOR.MINOR.PATCH` with an optional prerelease suffix. The workflow validates the tag and builds the tagged commit on four native runners:
 
 | Platform | Architecture | Build |
 | --- | --- | --- |
@@ -27,9 +33,9 @@ Each archive is named `lend_VERSION_OS_ARCH.tar.gz` and contains the binary, REA
 - `install.sh` for user-directory installation with curl.
 - `lend.rb` with pinned release URLs and checksums for the Homebrew tap.
 
-The final job creates a draft release with the text in [release-notes.md](release-notes.md). Tags with prerelease suffixes are also marked as prereleases. Review the text and assets, then publish the draft in GitHub. The workflow does not publish the draft or modify an existing release. A rerun for an existing draft fails at release creation; review or remove the old draft before retrying. Build artifacts remain available in Actions for seven days.
+The upload job attaches these files to the published release, replacing any assets with the same names. A release published without notes gets the text in [release-notes.md](release-notes.md). The release exists before its assets do, so the curl installer and Homebrew fail for that release until the upload finishes. To rebuild a published release, run the Release workflow manually with its tag. Build artifacts remain available in Actions for seven days.
 
-The built-in `GITHUB_TOKEN` is enough to create a draft in this repository. Only the draft job requests contents write permission. The source repository must be public for the documented anonymous curl installer to download releases.
+The built-in `GITHUB_TOKEN` is enough to upload assets in this repository. Only the upload job requests contents write permission. A release created by another workflow's `GITHUB_TOKEN` does not start this workflow, so publish releases with your own credentials. The source repository must be public for the documented anonymous curl installer to download releases.
 
 ## Homebrew setup
 
@@ -37,7 +43,7 @@ The default tap is `antoniomika/homebrew-tap`. Create that public repository wit
 
 Set `HOMEBREW_TAP_TOKEN` as an Actions secret in this repository. Use a fine-grained token with contents write access to the tap repository. The default `GITHUB_TOKEN` cannot write to a separate tap repository. See GitHub's [Actions secrets documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets) and Homebrew's [tap documentation](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap).
 
-After publishing a stable release, review its `lend.rb` asset. Manually run **Update Homebrew tap** with that release tag. This workflow downloads the published formula, checks its checksum and Ruby syntax, then pushes one commit updating `Formula/lend.rb` in the tap. The commit subject is `chore(homebrew): update lend TAG`. Drafts and prereleases are refused. The workflow does not create the tap or a pull request.
+After uploading a stable release's assets, the Release workflow calls `.github/workflows/homebrew.yml`. It downloads the published formula, checks its checksum and Ruby syntax, then pushes one commit updating `Formula/lend.rb` in the tap. The commit subject is `chore(homebrew): update lend TAG`. Prereleases skip this step, and the Homebrew workflow refuses drafts and prereleases. To update the tap again for an existing release, run **Update Homebrew tap** manually with its tag. The workflow does not create the tap or a pull request.
 
 After that first update, users can run:
 

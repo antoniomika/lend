@@ -1,12 +1,12 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag, such as v0.1.0
+        description: Published release tag to rebuild, such as v0.1.0
         required: true
         type: string
 
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag || github.ref_name }}
+  group: release-${{ inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
@@ -25,30 +25,37 @@ jobs:
       tag: ${{ steps.metadata.outputs.tag }}
       commit: ${{ steps.metadata.outputs.commit }}
       date: ${{ steps.metadata.outputs.date }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: refs/tags/${{ inputs.tag || github.event.release.tag_name }}
           persist-credentials: false
       - name: Validate release metadata
         id: metadata
         env:
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
           python3 - <<'PY'
+          import json
           import os
           import subprocess
           import sys
           sys.path.insert(0, "scripts")
           from release import release_version
           tag = release_version(os.environ["RELEASE_TAG"])
+          info = json.loads(subprocess.check_output(["gh", "release", "view", tag, "--repo", os.environ["GITHUB_REPOSITORY"], "--json", "isDraft,isPrerelease"], text=True))
+          if info["isDraft"]:
+              raise SystemExit("release must be published")
           commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
           tagged = subprocess.check_output(["git", "rev-parse", f"refs/tags/{tag}^{{commit}}"], text=True).strip()
           if tagged != commit:
               raise SystemExit("checkout does not match the release tag")
           date = subprocess.check_output(["git", "show", "-s", "--format=%cI", "HEAD"], text=True).strip()
+          prerelease = "true" if info["isPrerelease"] or "-" in tag else "false"
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-              output.write(f"tag={tag}\ncommit={commit}\ndate={date}\n")
+              output.write(f"tag={tag}\ncommit={commit}\ndate={date}\nprerelease={prerelease}\n")
           PY
   build:
     needs: prepare
@@ -94,7 +101,7 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: error
           retention-days: 7
-  draft:
+  upload:
     needs: [prepare, build]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -118,11 +125,21 @@ jobs:
           cd dist
           sha256sum --check checksums.txt
           ruby -c lend.rb
-      - name: Create draft release for review
+      - name: Upload assets to the release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
-          release_flags=(--draft)
-          case "$RELEASE_TAG" in *-*) release_flags+=(--prerelease) ;; esac
-          gh release create "$RELEASE_TAG" --verify-tag "${release_flags[@]}" --title "$RELEASE_TAG" --notes-file docs/release-notes.md dist/*
+          gh release upload "$RELEASE_TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+          # Fill in the standard notes only when the release was published without any.
+          body=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          if [ -z "$body" ]; then
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file docs/release-notes.md
+          fi
+  homebrew:
+    needs: [prepare, upload]
+    if: needs.prepare.outputs.prerelease == 'false'
+    uses: ./.github/workflows/homebrew.yml
+    with:
+      tag: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit

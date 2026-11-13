@@ -10,7 +10,7 @@ go test -race ./...
 go vet ./...
 ```
 
-`make check` also checks formatting and runs the installer and release packaging tests. GitHub CI runs on Linux and macOS, on both amd64 and arm64, and checks the minimum Go version on Linux. macOS CI builds the cgo backend against the native SDK. See [releasing](/releasing.html) for draft releases and the Homebrew tap workflow.
+`make check` also checks formatting and runs the installer and release packaging tests. GitHub CI runs on Linux and macOS, on both amd64 and arm64, and checks the minimum Go version on Linux. macOS CI builds the cgo backend against the native SDK. See [releasing](/releasing.html) for publishing releases and updating the Homebrew tap.
 
 Tests cover profile isolation, exact lease scope, expiry and revocation, unavailable lock tracking, approval queue cancellation, credential injection and failures, persistent history and rotation, local controls, management permissions, secret redaction, private-key identity checks, packet clearing, caller display, spoofed metadata, binding hints, key filtering, signing policy and quotas, upstream denial, command policies, reason forwarding, MCP lifecycle and cancellation, output limits, streaming, argv handling, timeouts, framing limits, and socket directory checks. Plain key fingerprints are checked against `ssh-keygen`. Unix socket, peer credential, and OpenSSH agent integration tests skip when the environment denies socket creation. Native macOS dialogs, authentication, and lock notifications need validation on a Mac with an interactive desktop session. Desktop lock integration and the complete SSH wrapper lifecycle also need validation on unrestricted desktop hosts.
 

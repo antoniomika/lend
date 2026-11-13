@@ -1,23 +1,27 @@
 name: Update Homebrew tap
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
-        description: Published release tag whose formula you have reviewed
+        description: Published stable release tag
         required: true
         type: string
 
 permissions:
   contents: read
 
-concurrency:
-  group: homebrew
-  cancel-in-progress: false
-
 jobs:
   update:
     runs-on: ubuntu-24.04
+    concurrency:
+      group: homebrew
+      cancel-in-progress: false
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
