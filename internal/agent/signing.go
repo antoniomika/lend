@@ -21,6 +21,13 @@ func (s *Server) approve(parent context.Context, summary approval.Summary) error
 		summary.RequestID = id
 		s.Activity.Describe(id, summary)
 	}
+	if summary.Requirement == "none" {
+		s.stage(ctx, "allowed")
+		if summary.RequestID != "" {
+			s.Activity.Decision(summary.RequestID, "policy")
+		}
+		return ctx.Err()
+	}
 	s.stage(ctx, "queued")
 	select {
 	case s.approvals <- struct{}{}:

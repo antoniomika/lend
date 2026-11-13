@@ -26,14 +26,15 @@ type Rule struct {
 }
 
 type Policy struct {
-	Default         string             `json:"default"`
-	DefaultApproval string             `json:"default_approval,omitempty"`
-	RequireReason   bool               `json:"require_reason,omitempty"`
-	Commands        []Rule             `json:"commands"`
-	SSH             SSHPolicy          `json:"ssh"`
-	Profiles        map[string]*Policy `json:"profiles,omitempty"`
-	SecretReader    string             `json:"secret_reader,omitempty"`
-	History         History            `json:"history,omitempty"`
+	Default          string             `json:"default"`
+	DefaultApproval  string             `json:"default_approval,omitempty"`
+	RequireReason    bool               `json:"require_reason,omitempty"`
+	Commands         []Rule             `json:"commands"`
+	SSH              SSHPolicy          `json:"ssh"`
+	Profiles         map[string]*Policy `json:"profiles,omitempty"`
+	SecretReader     string             `json:"secret_reader,omitempty"`
+	SecretReaderArgs []string           `json:"secret_reader_args,omitempty"`
+	History          History            `json:"history,omitempty"`
 }
 
 func AllowAll() *Policy {
@@ -97,6 +98,17 @@ func (p *Policy) validate(nested bool) error {
 		}
 		p.SecretReader = resolved
 	}
+	if len(p.SecretReaderArgs) != 0 && p.SecretReader == "" {
+		return errors.New("secret_reader_args requires secret_reader")
+	}
+	if len(p.SecretReaderArgs) > 32 {
+		return errors.New("at most 32 secret_reader_args are allowed")
+	}
+	for _, arg := range p.SecretReaderArgs {
+		if len(arg) > 2048 || strings.ContainsRune(arg, 0) {
+			return errors.New("invalid secret_reader_args entry")
+		}
+	}
 	if p.Default == "" {
 		p.Default = "deny"
 	}
@@ -126,6 +138,10 @@ func (p *Policy) validate(nested bool) error {
 		if !validApproval(rule.Approval) {
 			return fmt.Errorf("invalid approval %q", rule.Approval)
 		}
+		// A lease is only offered from a prompt, so it could never take effect.
+		if rule.Approval == "none" && rule.Lease != nil {
+			return errors.New(`approval "none" does not use a lease`)
+		}
 		if err := (protocol.Request{Args: append([]string{resolved}, rule.ArgsPrefix...)}).Validate(); err != nil {
 			return err
 		}
@@ -136,8 +152,8 @@ func (p *Policy) validate(nested bool) error {
 			return errors.New("at most 32 credential variables are allowed")
 		}
 		for name, ref := range rule.Secrets {
-			if !envName(name) || name == "SSH_AUTH_SOCK" || !strings.HasPrefix(ref, "op://") || len(ref) > 2048 || strings.ContainsAny(ref, "\x00\r\n") || len(ref) <= 5 {
-				return errors.New("invalid credential environment variable or 1Password reference")
+			if !envName(name) || name == "SSH_AUTH_SOCK" || ref == "" || len(ref) > 2048 || strings.ContainsAny(ref, "\x00\r\n") {
+				return errors.New("invalid credential environment variable or secret reference")
 			}
 			if p.SecretReader == "" {
 				return errors.New("credential injection requires secret_reader")
@@ -153,7 +169,7 @@ func (p *Policy) validate(nested bool) error {
 }
 
 func validApproval(value string) bool {
-	return value == "auto" || value == "prompt" || value == "authenticate" || value == "biometric"
+	return value == "none" || value == "auto" || value == "prompt" || value == "authenticate" || value == "biometric"
 }
 
 func (p *Policy) Authorize(executable string, request protocol.Request) (string, error) {

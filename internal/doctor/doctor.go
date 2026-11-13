@@ -211,6 +211,51 @@ func checkKeys(r *Report, p *policy.Policy, identities []sshagent.Identity) {
 }
 
 func checkApproval(r *Report, p *policy.Policy, mode string, support approval.Support) {
+	requirements := []string{}
+	if p == nil {
+		requirements = append(requirements, "auto")
+	} else {
+		if p.Default == "allow" {
+			requirements = append(requirements, p.DefaultApproval)
+			if p.DefaultApproval == "none" {
+				r.add("unprompted", "warn", "every command without a matching rule runs without approval")
+			}
+		}
+		if p.SSH.Default == "allow" {
+			requirements = append(requirements, p.SSH.DefaultApproval)
+			if p.SSH.DefaultApproval == "none" {
+				r.add("unprompted", "warn", "every SSH key without a matching rule signs without approval")
+			}
+		}
+		if p.SSH.Management.Default == "allow" {
+			requirements = append(requirements, p.SSH.Management.DefaultApproval)
+			if p.SSH.Management.DefaultApproval == "none" {
+				r.add("unprompted", "warn", "every management operation without a matching rule runs without approval")
+			}
+		}
+		for _, rule := range p.Commands {
+			requirements = append(requirements, rule.Approval)
+			if rule.Approval == "none" {
+				r.add("unprompted", "warn", strings.Join(append([]string{rule.Name}, rule.ArgsPrefix...), " ")+" runs without approval")
+			}
+		}
+		for _, key := range p.SSH.Keys {
+			requirements = append(requirements, key.Approval)
+			if key.Approval == "none" {
+				r.add("unprompted", "warn", "SSH key "+key.Fingerprint+" signs without approval")
+			}
+		}
+		for _, rule := range p.SSH.Management.Operations {
+			requirements = append(requirements, rule.Approval)
+			if rule.Approval == "none" {
+				r.add("unprompted", "warn", "management operation "+rule.Operation+" runs without approval")
+			}
+		}
+	}
+	if !slices.ContainsFunc(requirements, func(requirement string) bool { return requirement != "none" }) {
+		r.add("approval-backend", "ok", "policy does not require local approval")
+		return
+	}
 	if mode == "terminal" {
 		support = approval.Support{Backend: "terminal", Prompt: approval.HasTerminal()}
 	}
@@ -227,25 +272,6 @@ func checkApproval(r *Report, p *policy.Policy, mode string, support approval.Su
 			r.add("authentication", "error", "macOS auto approval uses device authentication, which is currently unavailable")
 		}
 		return
-	}
-	requirements := []string{}
-	if p.Default == "allow" {
-		requirements = append(requirements, p.DefaultApproval)
-	}
-	if p.SSH.Default == "allow" {
-		requirements = append(requirements, p.SSH.DefaultApproval)
-	}
-	if p.SSH.Management.Default == "allow" {
-		requirements = append(requirements, p.SSH.Management.DefaultApproval)
-	}
-	for _, rule := range p.Commands {
-		requirements = append(requirements, rule.Approval)
-	}
-	for _, key := range p.SSH.Keys {
-		requirements = append(requirements, key.Approval)
-	}
-	for _, rule := range p.SSH.Management.Operations {
-		requirements = append(requirements, rule.Approval)
 	}
 	needsAuthentication := slices.Contains(requirements, "authenticate") || (runtime.GOOS == "darwin" && mode == "auto" && support.Backend == "macOS" && slices.Contains(requirements, "auto"))
 	if needsAuthentication && !support.Authentication {

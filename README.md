@@ -139,8 +139,11 @@ Executable paths are absolute and resolved through symlinks when loading the pol
 | prompt | Explicit local confirmation |
 | authenticate | macOS device owner authentication, which can use a password |
 | biometric | macOS biometric authentication with no password fallback |
+| none | No approval. The request runs as soon as policy admits it |
 
-`authenticate` and `biometric` requests fail on Linux, in macOS builds without cgo, and when using `--approval=terminal`. A biometric request also fails when biometry is unavailable, unenrolled, or locked out. The remote caller cannot select a weaker approval requirement. Every command needs local approval or an explicitly approved lease for its scope.
+`authenticate` and `biometric` requests fail on Linux, in macOS builds without cgo, and when using `--approval=terminal`. A biometric request also fails when biometry is unavailable, unenrolled, or locked out. The remote caller cannot select a weaker approval requirement. Every command needs local approval or an explicitly approved lease for its scope, unless its rule sets `none`.
+
+`none` works anywhere an approval is set: command rules, `default_approval`, SSH keys, and management. Anyone who can reach the forwarded socket can then make matching requests without a prompt, which is the same trust as forwarding your upstream agent directly. Those requests still appear in activity and history with the decision `policy`, and `lend doctor` warns about each rule and default that uses `none`. A rule with `none` cannot also set a `lease`.
 
 Set `"default": "allow"` and `"default_approval": "biometric"` to permit every command with biometric approval. `require_reason` requires a nonempty requester-supplied reason for both CLI and MCP calls. Reasons are displayed as untrusted text and do not establish identity or change policy.
 
@@ -304,17 +307,20 @@ The prompt offers Allow once and Allow lease. Terminal approval accepts separate
 
 Leases are offered only inside supervised `lend ssh` sessions with available desktop lock tracking. Standalone agents and unavailable lock tracking fall back to individual approvals. A lease lasts until its duration or use limit is reached, the session ends, lend observes a device lock or loses lock tracking, or you revoke it. Configurations allow up to one hour and 100 uses. The initial approved request counts as one use. Attempts consume lease uses even if execution or upstream signing later fails.
 
-Command leases match the resolved executable, exact argv, local working directory, credential references, and approval requirement. Stdin can vary between uses. Signing leases match the key, purpose, namespace, signature flags, and approval requirement. Local socket peer details and accepted binding hints further restrict reuse. Caller-supplied metadata never grants access. Signing leases do not establish a destination identity. Signature quotas and upstream restrictions apply to every use. Management operations always require fresh approval and clear existing leases when the upstream operation succeeds.
+Command leases match the resolved executable, exact argv, local working directory, credential references, and approval requirement. Stdin can vary between uses. Signing leases match the key, purpose, namespace, signature flags, and approval requirement. Local socket peer details and accepted binding hints further restrict reuse. Caller-supplied metadata never grants access. Signing leases do not establish a destination identity. Signature quotas and upstream restrictions apply to every use. Management operations never use leases. They require fresh approval unless their rule sets `none`, and they clear existing leases when the upstream operation succeeds.
 
 On Linux, lock tracking checks the active X11 or Wayland session's logind `LockedHint` through `loginctl`. It polls once per second and checks again before using a grant. A lock and unlock entirely between polls can be missed. On macOS, the cgo build checks console state and screen lock notifications. macOS builds without cgo cannot offer leases. Use individual approvals when your desktop cannot report its lock state reliably.
 
 ## Local credentials
 
-Command rules can inject selected 1Password values into the approved local process:
+Command rules can inject secrets from a local reader into the approved process. `secret_reader` is the absolute path to a program that prints a secret, and `secret_reader_args` are the arguments placed before the reference. For each variable, lend runs the reader with those arguments followed by the configured reference, and uses its stdout as the value. Without `secret_reader_args`, the reference is the only argument.
+
+For 1Password, run [`op read --no-newline`](https://developer.1password.com/docs/cli/reference/commands/read/):
 
 ```json
 {
   "secret_reader": "/opt/homebrew/bin/op",
+  "secret_reader_args": ["read", "--no-newline"],
   "commands": [
     {
       "executable": "/opt/homebrew/bin/gh",
@@ -326,7 +332,9 @@ Command rules can inject selected 1Password values into the approved local proce
 }
 ```
 
-`secret_reader` is the absolute path to the local `op` executable. After approval, lend uses [`op read --no-newline`](https://developer.1password.com/docs/cli/reference/commands/read/) for each locally configured reference. It passes values through the command environment. The remote request cannot choose environment variables or secret references. The prompt shows variable names and references; values remain hidden. Credential reads use the same command timeout and proxy socket. Failures refuse execution without returning the reader's output. Values are fetched again for each command, including leased requests, with a 64 KiB limit per value and 32 variables per rule.
+Other readers work the same way when they take the secret's name last, such as `pass show`, `gopass show -o`, or `security find-generic-password -w -s` on macOS. lend keeps the reader's output exactly, including a trailing newline, so use a no-newline option where the reader has one.
+
+lend reads credentials after the request is admitted and approved, and passes the values through the command environment. The remote request cannot choose environment variables or secret references. The prompt shows variable names and references; values remain hidden. Credential reads use the same command timeout and proxy socket. Failures refuse execution without returning the reader's output. Values are fetched again for each command, including leased requests, with a 64 KiB limit per value and 32 variables per rule.
 
 The command can use the credential to perform an operation and return its result. Its output still goes to the requester, so an executable or arguments that print the environment can disclose injected values. Select arguments and executables accordingly. Credential values are never added to approval summaries or history. Existing explicit `op read` command grants still return their output to the requester.
 
@@ -472,7 +480,7 @@ The MCP adapter supports the initialization-based stdio protocol revisions `2025
 
 This is an initial implementation for macOS and Linux. It supports pipes and binary streams. It does not allocate a PTY, forward terminal input, resize terminals, or support interactive programs such as editors. When the remote caller's stdin is a terminal, the command receives EOF; pipe or redirect input to send it to the laptop.
 
-Forwarding the proxy grants the ability to request local execution, use admitted SSH keys, and request permitted management changes. Local policy checks every request. Commands and signatures require approval or a valid explicit lease; management always requires fresh approval. The upstream agent's restrictions and approval requirements also apply. Approving a shell, interpreter, or command that consumes instructions on stdin can authorize arbitrary local execution. Stdin is streamed after approval and is not reviewed by the prompt.
+Forwarding the proxy grants the ability to request local execution, use admitted SSH keys, and request permitted management changes. Local policy checks every request. Commands, signatures, and management require approval unless their rule or default sets `none`. Commands and signatures can also use a valid explicit lease. The upstream agent's restrictions and approval requirements also apply. Approving a shell, interpreter, or command that consumes instructions on stdin can authorize arbitrary local execution. Stdin is streamed after approval and is not reviewed by the prompt.
 
 Requests are labeled with an unverified origin. This version preserves OpenSSH session binding messages for the upstream agent, but does not verify those bindings itself or map them to hostnames. Signing format classification does not prove the remote destination or enforce host allowlists. Anyone able to access the forwarded socket, including an administrator on the remote host, can request execution or relay the socket elsewhere. The local policy and approval prompt govern each request.
 

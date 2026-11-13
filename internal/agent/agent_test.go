@@ -605,3 +605,57 @@ func TestPrintArgv0Fixture(t *testing.T) {
 	os.Stdout.WriteString(os.Args[0])
 	os.Exit(0)
 }
+
+func TestUnpromptedRuleSkipsApproval(t *testing.T) {
+	var prompts atomic.Int32
+	h, _ := startServer(t, func(context.Context, approval.Summary) error {
+		prompts.Add(1)
+		return nil
+	}, "", time.Second)
+	path, err := exec.LookPath("printf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(policy.Policy{Commands: []policy.Rule{
+		{Executable: path, Approval: "prompt"},
+		{Executable: path, ArgsPrefix: []string{"unprompted"}, Approval: "none"},
+	}})
+	h.server.Policy, err = policy.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		arg     string
+		prompts int32
+	}{{"unprompted", 0}, {"prompted", 1}} {
+		var out bytes.Buffer
+		code, err := h.run(context.Background(), []string{"printf", tc.arg}, strings.NewReader(""), &out, io.Discard)
+		if err != nil || code != 0 || out.String() != tc.arg || prompts.Load() != tc.prompts {
+			t.Fatalf("%s: code=%d err=%v out=%q prompts=%d", tc.arg, code, err, out.String(), prompts.Load())
+		}
+	}
+	waitHistory(t, h.server, 2)
+	decisions := map[string]bool{}
+	for _, entry := range h.server.Activity.Snapshot(true).History {
+		decisions[entry.Approval] = true
+	}
+	if !decisions["policy"] || !decisions["once"] {
+		t.Fatalf("decisions=%v", decisions)
+	}
+}
+
+func TestUnpromptedDefaultSkipsApproval(t *testing.T) {
+	h, _ := startServer(t, func(context.Context, approval.Summary) error {
+		t.Error("unprompted default asked for approval")
+		return nil
+	}, "", time.Second)
+	var err error
+	h.server.Policy, err = policy.Parse([]byte(`{"default":"allow","default_approval":"none"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if code, err := h.run(context.Background(), []string{"printf", "ran"}, strings.NewReader(""), &out, io.Discard); err != nil || code != 0 || out.String() != "ran" {
+		t.Fatalf("code=%d err=%v out=%q", code, err, out.String())
+	}
+}

@@ -57,7 +57,7 @@ func TestSSHInvalidRules(t *testing.T) {
 	fingerprint := sshagent.Fingerprint([]byte("fixture"))
 	for _, rule := range []KeyRule{
 		{Fingerprint: "SHA256:bad", Approval: "prompt"},
-		{Fingerprint: fingerprint, Approval: "none"},
+		{Fingerprint: fingerprint, Approval: "none", Lease: &Lease{Duration: "1m", Uses: 1}},
 		{Fingerprint: fingerprint, Approval: "prompt", Purposes: []string{"unknown"}},
 		{Fingerprint: fingerprint, Approval: "prompt", Namespaces: []string{"git"}},
 		{Fingerprint: fingerprint, Approval: "prompt", Purposes: []string{"sshsig"}, Namespaces: []string{""}},
@@ -68,7 +68,7 @@ func TestSSHInvalidRules(t *testing.T) {
 			t.Fatalf("accepted invalid rule: %+v", rule)
 		}
 	}
-	for _, data := range []string{`{"ssh":{"default":"anything"}}`, `{"ssh":{"default_approval":"none"}}`, `{"ssh":{"unrecognized":true}}`} {
+	for _, data := range []string{`{"ssh":{"default":"anything"}}`, `{"ssh":{"default_approval":"never"}}`, `{"ssh":{"unrecognized":true}}`} {
 		if _, err := Parse([]byte(data)); err == nil {
 			t.Fatalf("accepted invalid SSH policy: %s", data)
 		}

@@ -49,8 +49,11 @@ Executable paths are absolute and resolved through symlinks when loading the pol
 | prompt | Explicit local confirmation |
 | authenticate | macOS device owner authentication, which can use a password |
 | biometric | macOS biometric authentication with no password fallback |
+| none | No approval. The request runs as soon as policy admits it |
 
-`authenticate` and `biometric` requests fail on Linux, in macOS builds without cgo, and when using `--approval=terminal`. A biometric request also fails when biometry is unavailable, unenrolled, or locked out. The remote caller cannot select a weaker approval requirement. Every command needs local approval or an explicitly approved lease for its scope.
+`authenticate` and `biometric` requests fail on Linux, in macOS builds without cgo, and when using `--approval=terminal`. A biometric request also fails when biometry is unavailable, unenrolled, or locked out. The remote caller cannot select a weaker approval requirement. Every command needs local approval or an explicitly approved lease for its scope, unless its rule sets `none`.
+
+`none` works anywhere an approval is set: command rules, `default_approval`, SSH keys, and management. Anyone who can reach the forwarded socket can then make matching requests without a prompt, which is the same trust as forwarding your upstream agent directly. Those requests still appear in activity and history with the decision `policy`, and `lend doctor` warns about each rule and default that uses `none`. A rule with `none` cannot also set a `lease`.
 
 Set `"default": "allow"` and `"default_approval": "biometric"` to permit every command with biometric approval. `require_reason` requires a nonempty requester-supplied reason for both CLI and MCP calls. Reasons are displayed as untrusted text and do not establish identity or change policy.
 

@@ -37,7 +37,8 @@ func (s *Server) commandEnvironment(ctx context.Context, references map[string]s
 		if s.Policy.SecretReader == "" {
 			return nil, errors.New("credential reader is not configured")
 		}
-		cmd := exec.CommandContext(ctx, s.Policy.SecretReader, "read", "--no-newline", references[name])
+		args := append(append([]string(nil), s.Policy.SecretReaderArgs...), references[name])
+		cmd := exec.CommandContext(ctx, s.Policy.SecretReader, args...)
 		cmd.Env = environment
 		cmd.Dir = s.Directory
 		cmd.Stderr = io.Discard

@@ -9,13 +9,16 @@ Commands inherit the laptop daemon's environment, including its `PATH` and any e
 
 Remote requests cannot provide environment overrides. Requester-reported fields such as `SSH_CONNECTION` are display metadata and are not injected into the local command. There is currently no clean-environment mode or environment allowlist. An approved program can read or print its inherited environment.
 
-## 1Password injection
+## Secret injection
 
-Command rules can inject selected 1Password values into the approved local process:
+Command rules can inject secrets from a local reader into the approved process. `secret_reader` is the absolute path to a program that prints a secret, and `secret_reader_args` are the arguments placed before the reference. For each variable, lend runs the reader with those arguments followed by the configured reference, and uses its stdout as the value. Without `secret_reader_args`, the reference is the only argument.
+
+For 1Password, run [`op read --no-newline`](https://developer.1password.com/docs/cli/reference/commands/read/):
 
 ```json
 {
   "secret_reader": "/opt/homebrew/bin/op",
+  "secret_reader_args": ["read", "--no-newline"],
   "commands": [
     {
       "executable": "/opt/homebrew/bin/gh",
@@ -27,7 +30,9 @@ Command rules can inject selected 1Password values into the approved local proce
 }
 ```
 
-`secret_reader` is the absolute path to the local `op` executable. After approval, lend uses [`op read --no-newline`](https://developer.1password.com/docs/cli/reference/commands/read/) for each locally configured reference. It passes values through the command environment. The remote request cannot choose environment variables or secret references. The prompt shows variable names and references; values remain hidden. Credential reads use the same command timeout and proxy socket. Failures refuse execution without returning the reader's output. Values are fetched again for each command, including leased requests, with a 64 KiB limit per value and 32 variables per rule.
+Other readers work the same way when they take the secret's name last, such as `pass show`, `gopass show -o`, or `security find-generic-password -w -s` on macOS. lend keeps the reader's output exactly, including a trailing newline, so use a no-newline option where the reader has one.
+
+lend reads credentials after the request is admitted and approved, and passes the values through the command environment. The remote request cannot choose environment variables or secret references. The prompt shows variable names and references; values remain hidden. Credential reads use the same command timeout and proxy socket. Failures refuse execution without returning the reader's output. Values are fetched again for each command, including leased requests, with a 64 KiB limit per value and 32 variables per rule.
 
 The command can use the credential to perform an operation and return its result. Its output still goes to the requester, so an executable or arguments that print the environment can disclose injected values. Select arguments and executables accordingly. Credential values are never added to approval summaries or history. Existing explicit `op read` command grants still return their output to the requester.
 

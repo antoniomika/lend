@@ -57,6 +57,9 @@ func (p *SSHPolicy) validate() error {
 		if !validApproval(key.Approval) {
 			return errors.New("invalid SSH key approval")
 		}
+		if key.Approval == "none" && key.Lease != nil {
+			return errors.New(`approval "none" does not use a lease`)
+		}
 		if len(key.Label) > 256 || !utf8.ValidString(key.Label) || strings.ContainsRune(key.Label, 0) {
 			return errors.New("invalid SSH key label")
 		}

@@ -79,7 +79,7 @@ func TestLeaseCredentialAndProfileConfiguration(t *testing.T) {
 		}
 	}
 	valid.Commands[0].Lease = nil
-	for _, secrets := range []map[string]string{{"1TOKEN": "op://vault/item/field"}, {"SSH_AUTH_SOCK": "op://vault/item/field"}, {"TOKEN": "plain-secret"}, {"TOKEN": "op://vault/item\x00/field"}} {
+	for _, secrets := range []map[string]string{{"1TOKEN": "op://vault/item/field"}, {"SSH_AUTH_SOCK": "op://vault/item/field"}, {"TOKEN": ""}, {"TOKEN": "vault/item\nfield"}, {"TOKEN": "op://vault/item\x00/field"}} {
 		valid.Commands[0].Secrets = secrets
 		data, _ = json.Marshal(valid)
 		if _, err := Parse(data); err == nil {
@@ -91,6 +91,12 @@ func TestLeaseCredentialAndProfileConfiguration(t *testing.T) {
 	data, _ = json.Marshal(valid)
 	if _, err := Parse(data); err == nil {
 		t.Fatal("credential mapping accepted without a reader")
+	}
+	valid.Commands[0].Secrets = nil
+	valid.SecretReaderArgs = []string{"read"}
+	data, _ = json.Marshal(valid)
+	if _, err := Parse(data); err == nil {
+		t.Fatal("secret_reader_args accepted without a reader")
 	}
 }
 

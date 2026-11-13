@@ -5,6 +5,7 @@
       "default": "deny",
       "require_reason": true,
       "secret_reader": "/opt/homebrew/bin/op",
+      "secret_reader_args": ["read", "--no-newline"],
       "history": {
         "path": "/Users/you/.lend/history/development.jsonl"
       },

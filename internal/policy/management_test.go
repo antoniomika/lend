@@ -56,7 +56,7 @@ func TestManagementDefaultAndInvalidRules(t *testing.T) {
 		t.Fatal("explicit allow all excludes management")
 	}
 	for _, rule := range []ManagementRule{
-		{Operation: "unknown", Approval: "prompt"}, {Operation: "lock", Approval: "none"},
+		{Operation: "unknown", Approval: "prompt"}, {Operation: "lock", Approval: "never"},
 		{Operation: "remove-all-keys", Approval: "prompt", Fingerprints: []string{sshagent.Fingerprint([]byte("fixture"))}},
 		{Operation: "unlock", Approval: "prompt", Providers: []string{"internal"}},
 		{Operation: "add-key", Approval: "prompt", Fingerprints: []string{"SHA256:bad"}},
@@ -68,7 +68,7 @@ func TestManagementDefaultAndInvalidRules(t *testing.T) {
 		}
 	}
 	for _, data := range []string{
-		`{"ssh":{"management":{"default":"bad"}}}`, `{"ssh":{"management":{"default_approval":"none"}}}`,
+		`{"ssh":{"management":{"default":"bad"}}}`, `{"ssh":{"management":{"default_approval":"never"}}}`,
 		`{"ssh":{"management":{"operations":[{"operation":"lock","approval":"prompt"},{"operation":"lock","approval":"biometric"}]}}}`,
 	} {
 		if _, err := Parse([]byte(data)); err == nil {

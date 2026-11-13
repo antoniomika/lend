@@ -243,3 +243,20 @@ func TestManagementDoesNotResetSigningQuota(t *testing.T) {
 		t.Fatal("management reset signing quota")
 	}
 }
+
+func TestManagementUnpromptedRuleForwards(t *testing.T) {
+	h, _ := startServer(t, func(context.Context, approval.Summary) error {
+		t.Error("unprompted management asked for approval")
+		return nil
+	}, "", time.Second)
+	h.server.Policy = managementPolicy(t, policy.ManagementRule{Operation: "remove-all-keys", Approval: "none"})
+	calls := mockUpstream(t, h, func([]byte) []byte { return []byte{6} })
+	conn := h.dial()
+	defer conn.Close()
+	if result := roundTrip(t, conn, []byte{19}); !bytes.Equal(result, []byte{6}) {
+		t.Fatalf("reply %v", result)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("upstream calls=%d", calls.Load())
+	}
+}

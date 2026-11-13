@@ -401,3 +401,23 @@ func waitHistory(t *testing.T, s *Server, count int) {
 		}
 	}
 }
+
+func TestCredentialReaderReceivesConfiguredArgs(t *testing.T) {
+	h, dir := startServer(t, allow, "", time.Second)
+	argv := filepath.Join(dir, "argv")
+	reader := filepath.Join(dir, "reader")
+	script := "#!/bin/sh\nfor arg; do printf '%s\\n' \"$arg\" >> '" + argv + "'; done\nprintf value"
+	if err := os.WriteFile(reader, []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	h.server.Policy = commandLeasePolicy(t, nil, map[string]string{"TOKEN": "service name"}, reader)
+	h.server.Policy.SecretReaderArgs = []string{"get", "--raw"}
+	var out bytes.Buffer
+	if code, err := h.run(context.Background(), []string{"sh", "-c", "printf %s \"$TOKEN\""}, strings.NewReader(""), &out, io.Discard); err != nil || code != 0 || out.String() != "value" {
+		t.Fatalf("code=%d err=%v out=%q", code, err, out.String())
+	}
+	got, err := os.ReadFile(argv)
+	if err != nil || string(got) != "get\n--raw\nservice name\n" {
+		t.Fatalf("reader argv=%q err=%v", got, err)
+	}
+}

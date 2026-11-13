@@ -457,3 +457,28 @@ func TestRunningCommandAllowsSSHApproval(t *testing.T) {
 		t.Fatal("command did not stop")
 	}
 }
+
+func TestSSHUnpromptedKeySkipsApprovalButKeepsLimits(t *testing.T) {
+	h, _ := startServer(t, func(context.Context, approval.Summary) error {
+		t.Error("unprompted key asked for approval")
+		return nil
+	}, "", time.Second)
+	data, _ := json.Marshal(policy.Policy{SSH: policy.SSHPolicy{Keys: []policy.KeyRule{{Fingerprint: sshagent.Fingerprint(testKey(1)), Approval: "none", Purposes: []string{"raw"}, MaxSignatures: 1}}}})
+	var err error
+	h.server.Policy, err = policy.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := mockUpstream(t, h, func([]byte) []byte { return signature([]byte("data")) })
+	for i, want := range []byte{sshagent.SignResponse, 5} {
+		conn := h.dial()
+		p := roundTrip(t, conn, signPacket(testKey(1), []byte("data")))
+		conn.Close()
+		if p[0] != want {
+			t.Fatalf("signature %d: reply %v", i, p)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("upstream calls=%d", calls.Load())
+	}
+}

@@ -161,3 +161,75 @@ func hasCheck(report Report, name, status string) bool {
 	return false
 }
 func quote(s string) string { data, _ := json.Marshal(s); return string(data) }
+
+func TestUnpromptedRulesAreReported(t *testing.T) {
+	path, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(policy.Policy{Commands: []policy.Rule{{Executable: path, ArgsPrefix: []string{"pr", "view"}, Approval: "none"}}})
+	p, err := policy.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := Report{}
+	checkApproval(&report, p, "terminal", approval.Support{})
+	if !hasCheck(report, "unprompted", "warn") {
+		t.Fatalf("%+v", report.Checks)
+	}
+	open, err := policy.Parse([]byte(`{"default":"allow","default_approval":"none"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	report = Report{}
+	checkApproval(&report, open, "terminal", approval.Support{})
+	if !hasCheck(report, "unprompted", "warn") {
+		t.Fatalf("%+v", report.Checks)
+	}
+}
+
+func TestApprovalBackendOnlyRequiredForPromptedOperations(t *testing.T) {
+	path, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := `"executable":` + quote(path)
+	key := `"fingerprint":` + quote(sshagent.Fingerprint([]byte("fixture")))
+	for _, test := range []struct {
+		name           string
+		config         string
+		requiresPrompt bool
+	}{
+		{"no config", "", true},
+		{"deny all", `{}`, false},
+		{"command default", `{"default":"allow","default_approval":"none"}`, false},
+		{"SSH default", `{"ssh":{"default":"allow","default_approval":"none"}}`, false},
+		{"management default", `{"ssh":{"management":{"default":"allow","default_approval":"none"}}}`, false},
+		{"command rule", `{"commands":[{` + command + `,"approval":"none"}]}`, false},
+		{"SSH rule", `{"ssh":{"keys":[{` + key + `,"approval":"none"}]}}`, false},
+		{"management rule", `{"ssh":{"management":{"operations":[{"operation":"lock","approval":"none"}]}}}`, false},
+		{"prompted command", `{"default":"allow","default_approval":"none","commands":[{` + command + `,"approval":"prompt"}]}`, true},
+		{"prompted SSH", `{"default":"allow","default_approval":"none","ssh":{"keys":[{` + key + `,"approval":"auto"}]}}`, true},
+		{"prompted management", `{"default":"allow","default_approval":"none","ssh":{"management":{"operations":[{"operation":"lock","approval":"prompt"}]}}}`, true},
+		{"prompted default", `{"default":"allow","commands":[{` + command + `,"approval":"none"}]}`, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var p *policy.Policy
+			if test.config != "" {
+				var err error
+				p, err = policy.Parse([]byte(test.config))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			report := Report{}
+			checkApproval(&report, p, "auto", approval.Support{})
+			if hasCheck(report, "approval-backend", "error") != test.requiresPrompt || report.Healthy() == test.requiresPrompt {
+				t.Fatalf("requiresPrompt=%t checks=%+v", test.requiresPrompt, report.Checks)
+			}
+			if strings.Contains(test.config, `"none"`) && !hasCheck(report, "unprompted", "warn") {
+				t.Fatalf("missing unprompted warning: %+v", report.Checks)
+			}
+		})
+	}
+}

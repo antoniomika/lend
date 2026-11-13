@@ -18,7 +18,7 @@ The `ssh` purpose recognizes SSH user authentication payloads from [RFC 4252](ht
 
 ## Management requests
 
-Management uses the standard agent message formats from RFC 9987. Types 17 and 25 map to `add-key`, 18 to `remove-key`, 19 to `remove-all-keys`, 20 and 26 to `add-provider`, 21 to `remove-provider`, 22 to `lock`, and 23 to `unlock`. Types 25 and 26 include constraints. The `ssh.management` policy is checked separately from signing policy. Every allowed management request requires local approval before the original packet is sent on the same upstream connection. Only single-byte success (6) and failure (5) replies are accepted. Local refusal returns type 5.
+Management uses the standard agent message formats from RFC 9987. Types 17 and 25 map to `add-key`, 18 to `remove-key`, 19 to `remove-all-keys`, 20 and 26 to `add-provider`, 21 to `remove-provider`, 22 to `lock`, and 23 to `unlock`. Types 25 and 26 include constraints. The `ssh.management` policy is checked separately from signing policy. Every allowed management request receives its configured approval before the original packet is sent on the same upstream connection. Only single-byte success (6) and failure (5) replies are accepted. Local refusal returns type 5.
 
 Key additions parse supported private-key formats and check their correspondence to the public identity used for fingerprint selection. Certificate identities use the certificate blob's fingerprint. Management summaries contain public target metadata, requested lifetime and confirmation, and recognized extension names. Private key values, security-key handles, PINs, and passphrases are never added to the summary. The original packet buffer is cleared after processing.
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/antoniomika/lend/internal/protocol"
+	"github.com/antoniomika/lend/internal/sshagent"
 )
 
 func executable(t *testing.T) string {
@@ -106,7 +107,7 @@ func TestInvalidPolicies(t *testing.T) {
 	duplicate, _ := json.Marshal(Policy{Commands: []Rule{{Executable: path, Approval: "prompt"}, {Executable: path, Approval: "biometric"}}})
 	for _, data := range [][]byte{
 		[]byte(`{"default":"anything"}`),
-		[]byte(`{"default_approval":"none"}`),
+		[]byte(`{"default_approval":"never"}`),
 		[]byte(`{"commands":[{"executable":"tool","approval":"prompt"}]}`),
 		[]byte(`{"default":"allow","typo":true}`),
 		[]byte(`{} {}`), duplicate,
@@ -130,5 +131,51 @@ func TestExplainReportsConfiguredArgv0(t *testing.T) {
 	open := parsePolicy(t, Policy{Default: "allow"})
 	if got := open.Explain(t.TempDir(), protocol.Request{Args: []string{path}}); !got.Allowed || got.Argv0 != "" {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestUnpromptedCommands(t *testing.T) {
+	path := executable(t)
+	p := parsePolicy(t, Policy{Commands: []Rule{
+		{Executable: path, Approval: "biometric"},
+		{Executable: path, ArgsPrefix: []string{"pr", "view"}, Approval: "none"},
+	}})
+	if got, err := p.Authorize(path, protocol.Request{Args: []string{"tool", "pr", "view", "1"}}); err != nil || got != "none" {
+		t.Fatalf("approval=%q err=%v", got, err)
+	}
+	if got, err := p.Authorize(path, protocol.Request{Args: []string{"tool", "pr", "merge", "1"}}); err != nil || got != "biometric" {
+		t.Fatalf("approval=%q err=%v", got, err)
+	}
+	whole := parsePolicy(t, Policy{Commands: []Rule{{Executable: path, Approval: "none"}}})
+	if got, err := whole.Authorize(path, protocol.Request{Args: []string{"tool", "anything"}}); err != nil || got != "none" {
+		t.Fatalf("approval=%q err=%v", got, err)
+	}
+	open := parsePolicy(t, Policy{Default: "allow", DefaultApproval: "none"})
+	if got, err := open.Authorize("/example/tool", protocol.Request{Args: []string{"tool"}}); err != nil || got != "none" {
+		t.Fatalf("approval=%q err=%v", got, err)
+	}
+	keys := parsePolicy(t, Policy{SSH: SSHPolicy{Default: "allow", DefaultApproval: "none", Keys: []KeyRule{{Fingerprint: "SHA256:Hvkm6UfgfD4K25mObdMYLV+11J532Dayhqtj6BccZ74", Approval: "none"}}}})
+	for _, fingerprint := range []string{"SHA256:Hvkm6UfgfD4K25mObdMYLV+11J532Dayhqtj6BccZ74", "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"} {
+		if key, err := keys.SSHKey(fingerprint); err != nil || key.Approval != "none" {
+			t.Fatalf("%s: approval=%q err=%v", fingerprint, key.Approval, err)
+		}
+	}
+	unprompted := parsePolicy(t, Policy{SecretReader: path, Commands: []Rule{{Executable: path, ArgsPrefix: []string{"read"}, Approval: "none", Secrets: map[string]string{"TOKEN": "op://vault/item/field"}}}, SSH: SSHPolicy{Management: ManagementPolicy{Default: "allow", DefaultApproval: "none", Operations: []ManagementRule{{Operation: "lock", Approval: "none"}}}}})
+	if got, err := unprompted.Authorize(path, protocol.Request{Args: []string{"tool", "read"}}); err != nil || got != "none" {
+		t.Fatalf("secrets: approval=%q err=%v", got, err)
+	}
+	for _, operation := range []string{"lock", "unlock"} {
+		if got, err := unprompted.AuthorizeManagement(sshagent.ManagementRequest{Operation: operation}); err != nil || got != "none" {
+			t.Fatalf("%s: approval=%q err=%v", operation, got, err)
+		}
+	}
+	for name, invalid := range map[string]Policy{
+		"command lease": {Commands: []Rule{{Executable: path, Approval: "none", Lease: &Lease{Duration: "1m", Uses: 1}}}},
+		"ssh key lease": {SSH: SSHPolicy{Keys: []KeyRule{{Fingerprint: "SHA256:Hvkm6UfgfD4K25mObdMYLV+11J532Dayhqtj6BccZ74", Approval: "none", Lease: &Lease{Duration: "1m", Uses: 1}}}}},
+	} {
+		data, _ := json.Marshal(invalid)
+		if _, err := Parse(data); err == nil {
+			t.Errorf("%s: accepted unused lease: %s", name, data)
+		}
 	}
 }
