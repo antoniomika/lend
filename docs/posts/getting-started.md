@@ -53,7 +53,7 @@ Create `policy.json` on the laptop. Replace the executable path and fingerprint 
 
 Linux often installs `gh` at `/usr/bin/gh`. Use the path reported on your laptop. The SSH key rule also permits the initial login through Lend. If the host accepts a different authentication method, configure that in `~/.ssh/config`.
 
-This policy permits `gh pr view` with additional arguments and SSH authentication with one key. Agent management and other commands remain denied. Use `"approval": "biometric"` on macOS to require biometrics without a password fallback. [Approval modes](/command-policy.html) describe the platform requirements.
+This policy permits `gh pr view` with additional arguments and SSH authentication with one key. Agent management and other commands remain denied. Use `"approval": "biometric"` on macOS to require biometrics without a password fallback, or `"biometric:inline"` to show Touch ID inside the request dialog. [Approval modes](/command-policy.html) describe the platform requirements.
 
 Download the fuller [policy example](/examples/policy.json) or [profile example](/examples/profiles.json) for more options.
 

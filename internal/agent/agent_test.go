@@ -234,6 +234,9 @@ func TestTimeoutStopsCommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("timeout was ignored")
 	}
+	if !strings.Contains(err.Error(), "command timeout") {
+		t.Fatalf("timeout error = %q", err)
+	}
 	if time.Since(start) > 2*time.Second {
 		t.Fatal("command was not interrupted")
 	}

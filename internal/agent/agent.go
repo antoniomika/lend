@@ -414,7 +414,13 @@ func (s *Server) execute(parent context.Context, conn net.Conn, data []byte, pac
 	s.stage(ctx, "running")
 	// Reap descendants that remain in the command's process group.
 	defer syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-	stop := context.AfterFunc(runCtx, func() { conn.Close(); stdin.Close() })
+	stop := context.AfterFunc(runCtx, func() {
+		if ctx.Err() == nil && errors.Is(runCtx.Err(), context.DeadlineExceeded) {
+			w.send(protocol.Error, []byte(fmt.Sprintf("command exceeded the %s command timeout", s.CommandTimeout)))
+		}
+		conn.Close()
+		stdin.Close()
+	})
 	defer stop()
 	go func() {
 		eof := false

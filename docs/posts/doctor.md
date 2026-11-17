@@ -13,7 +13,7 @@ lend doctor --config ./profiles.json --profile development
 lend doctor --config ./policy.json --approval terminal --json
 ```
 
-Doctor checks policy parsing, configured executables, the local working directory, upstream socket access, available upstream identities, proxy extension support, socket permissions, the local approval backend, required device authentication or biometrics, and history paths. If the policy enables leases, it also checks desktop lock tracking. `--upstream PATH`, `--socket PATH`, and `--dir PATH` select the locations to inspect. `--timeout` bounds each socket or desktop probe.
+Doctor checks policy parsing, configured executables, the local working directory, upstream socket access, available upstream identities, proxy extension support, socket permissions, the local approval backend, required device authentication or biometrics for commands, keys, and approval topics, and history paths. If the policy enables leases, it also checks desktop lock tracking. `--upstream PATH`, `--socket PATH`, and `--dir PATH` select the locations to inspect. `--timeout` bounds each socket or desktop probe.
 
 On a remote host:
 

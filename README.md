@@ -33,7 +33,7 @@ Choose a version and installation directory:
 
 ```sh
 curl -fsSL https://github.com/antoniomika/lend/releases/latest/download/install.sh \
-  | sh -s -- --version v0.0.2 --dir "$HOME/.local/bin"
+  | sh -s -- --version vX.Y.Z --dir "$HOME/.local/bin"
 ```
 
 The installer selects macOS or Linux and amd64 or arm64, verifies the archive's SHA256 checksum, and replaces the binary only after verification. It requires curl, tar, and either `sha256sum` or `shasum`. It uses no sudo and does not edit shell configuration. Add `~/.local/bin` to your `PATH` if needed. Run the same installer to upgrade, or use `brew upgrade antoniomika/tap/lend` for a Homebrew installation.
