@@ -7,10 +7,10 @@ description: Commands for the laptop, remote shell, and MCP client.
 
 ```text
 lend agent (--config FILE | --allow-all) [OPTIONS]
-lend ssh --config FILE [OPTIONS] -- HOST [COMMAND...]
+lend ssh [--config FILE] [LEND OPTIONS] [SSH OPTIONS] [--] HOST [COMMAND...]
 ```
 
-Run these on the laptop. `agent` stays in the foreground. `ssh` starts a supervised proxy for the connection. Options must precede the host or command arguments.
+Run these on the laptop. `agent` stays in the foreground. `ssh` starts a supervised proxy for the connection and requires OpenSSH 8.7 or later. Lend options must precede SSH arguments. An optional `--` ends SSH option parsing, including options after the host. Put SSH options before `--`. SSH options and remote command arguments pass through to the SSH executable on `PATH`.
 
 | Option | Applies to | Default or purpose |
 | --- | --- | --- |
@@ -22,11 +22,45 @@ Run these on the laptop. `agent` stays in the foreground. `ssh` starts a supervi
 | --approval terminal | agent, ssh | Use the laptop's controlling terminal |
 | --approval-timeout DURATION | agent, ssh | 1m, includes queue time |
 | --command-timeout DURATION | agent, ssh | 5m, includes credential retrieval |
+| --silent | agent, ssh | Hide lend startup messages |
+| --system-agent | ssh | Use the original agent for login |
 | --socket PATH | agent | Override the default proxy socket |
 | --session LABEL | agent | Local prompt label |
 | --allow-all | agent | Admit all supported requests, with approval |
 
-`--allow-all` and `--config` are mutually exclusive. SSH connection options come from `~/.ssh/config`. The wrapper disables connection sharing, persistence, and backgrounding.
+`--allow-all` and an explicit `--config` are mutually exclusive. `--allow-all` ignores environment policy defaults. Silent mode keeps errors, approval prompts, and SSH output visible. Pass SSH's `-q` to control SSH output.
+
+The wrapper uses its proxy socket for authentication and forwarding by default. `--system-agent` uses the upstream socket for login while forwarding the proxy. The login key or certificate then only needs to be available in the upstream agent. SSH's environment points at the selected authentication socket; `ForwardAgent` explicitly selects the proxy socket.
+
+The selected sockets and settings that disable connection sharing, persistence, and backgrounding take precedence over `-o` options and SSH config for the destination connection. ProxyJump connections use their own SSH configuration; see [Sessions and profiles](/sessions.html) to route jump-host authentication through lend. The wrapper rejects `-f`, `-M`, `-O`, and `-S`; use a [manually managed proxy](/commands.html) for those workflows. SSH's `-a` can disable forwarding. Informational invocations such as `-G`, `-V`, and `-Q`, and invalid SSH arguments run directly without a proxy or policy file.
+
+## Environment defaults
+
+Explicit lend flags override these values, including `--profile=` and `--silent=false`. Empty environment values use the built-in defaults. An empty `--dir=` selects the laptop user's home directory for every local subcommand. Boolean values accept `true`, `false`, `1`, or `0`. Durations use Go duration syntax such as `90s` or `10m`. Invalid values return an error.
+
+| Variable | Applies to | Flag |
+| --- | --- | --- |
+| LEND_CONFIG | agent, ssh, explain, local doctor | --config |
+| LEND_PROFILE | agent, ssh, explain, local doctor | --profile |
+| LEND_UPSTREAM | agent, ssh, local doctor | --upstream |
+| LEND_DIR | agent, ssh, explain, local doctor | --dir |
+| LEND_APPROVAL | agent, ssh, local doctor | --approval |
+| LEND_APPROVAL_TIMEOUT | agent, ssh | --approval-timeout |
+| LEND_COMMAND_TIMEOUT | agent, ssh | --command-timeout |
+| LEND_SILENT | agent, ssh | --silent |
+| LEND_SYSTEM_AGENT | ssh | --system-agent |
+
+The upstream socket defaults to `SSH_AUTH_SOCK` when `LEND_UPSTREAM` is empty. `doctor --remote` ignores these local environment defaults. Remote commands such as `exec`, `approve`, and `mcp` continue to select `SSH_AUTH_SOCK`.
+
+```sh
+export LEND_CONFIG="$HOME/.config/lend/policy.json"
+export LEND_SILENT=true
+alias ssh='lend ssh'
+
+ssh -p 2222 -J bastion agent-vm
+```
+
+Set `LEND_PROFILE` to select a named policy. Use `command ssh` to bypass the alias.
 
 ## Request local execution
 

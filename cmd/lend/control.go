@@ -203,8 +203,11 @@ func explain(args []string) (int, error) {
 		}
 		return 2, err
 	}
+	if err := applyEnvDefaults(fs); err != nil {
+		return 2, err
+	}
 	if *config == "" {
-		return 2, errors.New("explain requires --config")
+		return 2, errors.New("explain requires --config FILE or LEND_CONFIG")
 	}
 	p, err := policy.LoadProfile(*config, *profile)
 	if err != nil {

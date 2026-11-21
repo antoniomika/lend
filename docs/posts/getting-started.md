@@ -75,7 +75,17 @@ From the laptop:
 lend ssh --config ./policy.json -- agent-vm
 ```
 
-Replace `agent-vm` with your SSH host or an alias from `~/.ssh/config`. Put options such as the user, port, identity, and jump host in that file. Lend starts a separate local proxy, forwards its socket, and keeps it alive for this SSH connection. Your login may prompt for local key approval.
+Replace `agent-vm` with your SSH host or an alias from `~/.ssh/config`. Pass options such as `-p 2222`, `-i key`, and `-J bastion` before the host, or put them in that file. Lend starts a separate local proxy, forwards its socket, and keeps it alive for this SSH connection. Your login may prompt for local key approval.
+
+For an SSH alias, add these defaults to your shell configuration:
+
+```sh
+export LEND_CONFIG="$HOME/.config/lend/policy.json"
+export LEND_SILENT=true
+alias ssh='lend ssh'
+```
+
+Use the absolute path to the policy you created. Set `LEND_PROFILE` if it contains named profiles. Then connect with `ssh agent-vm` or `ssh -p 2222 agent-vm`. Silent mode hides lend's startup messages and keeps errors and approval prompts visible. Set `LEND_SYSTEM_AGENT=true` or pass `--system-agent` to authenticate the initial login with your original agent while forwarding lend's proxy. Use `command ssh` to bypass the alias. See [Sessions and profiles](/sessions.html) for supervised session limits.
 
 ## Request a command
 

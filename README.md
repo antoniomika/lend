@@ -286,14 +286,48 @@ The top-level `profiles` object contains independent policies. Selecting `--prof
 
 [examples/profiles.json](examples/profiles.json) provides development and cluster profiles. Replace executable paths, fingerprints, the history path, and credential references for your laptop. On Linux, use `prompt` approval in place of the example's macOS biometric requirement.
 
-`lend ssh` starts a separate local daemon and a private socket for each connection. The wrapper labels prompts with the locally selected profile and SSH target. SSH uses that proxy for authentication and forwarding. The wrapper disables connection sharing, persistence, and backgrounding so its lifetime follows the SSH process. Ports, users, jump hosts, and other SSH settings come from `~/.ssh/config`. Optional arguments after the host become the remote command.
+`lend ssh` starts a separate local daemon and a private socket for each connection. The wrapper labels prompts with the locally selected profile and SSH target. SSH uses that proxy for authentication and forwarding by default. Pass SSH options directly or set them in `~/.ssh/config`. Arguments for the remote command pass through unchanged.
 
 ```sh
 lend ssh --config ./profiles.json --profile development -- agent-vm
 lend ssh --config ./profiles.json --profile cluster -- rack
+lend ssh --config ./profiles.json --profile development -p 2222 -J bastion agent-vm
+lend ssh --config ./profiles.json --profile development --system-agent agent-vm
 ```
 
-Each session prints its local socket path. Closing SSH stops its daemon, cancels pending and running requests, and discards its leases and signature counters. A parent lifetime pipe also stops the daemon if the wrapper exits unexpectedly. The local session label describes the connection selected on the laptop. It does not establish the identity of a remote process or prevent socket relaying on the remote machine.
+`--system-agent` uses the original agent for initial login and forwards lend's proxy to the remote host. The login key or certificate only needs to be available in the original agent. Its socket defaults to the original `SSH_AUTH_SOCK`, with `--upstream` or `LEND_UPSTREAM` as overrides. Set `LEND_SYSTEM_AGENT=true` to make this the default.
+
+Set environment defaults in your shell configuration to use an SSH alias:
+
+```sh
+export LEND_CONFIG="$HOME/.config/lend/policy.json"
+export LEND_SILENT=true
+alias ssh='lend ssh'
+
+ssh -p 2222 -J bastion agent-vm
+```
+
+`LEND_PROFILE` selects a policy profile. `LEND_CONFIG` and `LEND_PROFILE` also apply to `agent`, `explain`, and local `doctor` checks. Explicit lend flags override environment defaults. Lend flags must precede SSH arguments. An optional `--` ends SSH option parsing; put SSH options before it. Use `command ssh` to bypass the alias.
+
+`--silent` or `LEND_SILENT=true` hides lend's agent and session startup messages. Errors, approval prompts, and SSH output remain visible. SSH's `-q` controls its own output. Other environment defaults are `LEND_UPSTREAM`, `LEND_DIR`, `LEND_APPROVAL`, `LEND_APPROVAL_TIMEOUT`, and `LEND_COMMAND_TIMEOUT`; see the [CLI reference](docs/posts/cli.md).
+
+The supervised wrapper requires OpenSSH 8.7 or later. It disables connection sharing, persistence, and backgrounding so the proxy's lifetime follows SSH. It rejects `-f`, `-M`, `-O`, and `-S`. Its selected authentication socket, forwarding socket, and lifetime settings take precedence over `-o` options and SSH config for the destination connection. Use a manually managed proxy for background connections or multiplexing. Informational invocations such as `ssh -G`, `ssh -V`, and `ssh -Q`, and invalid SSH arguments run directly without a proxy or policy file.
+
+ProxyJump (`-J` or `ProxyJump` in SSH config) starts separate SSH processes that use their own host configuration. To make a jump host use lend's selected authentication socket and avoid persistent jump connections, configure that host:
+
+```sshconfig
+Host bastion
+    IdentityAgent SSH_AUTH_SOCK
+    ForwardAgent no
+    ControlMaster no
+    ControlPath none
+    ControlPersist no
+    ForkAfterAuthentication no
+```
+
+A jump host with another `IdentityAgent` setting authenticates through that agent. Existing shared jump connections use their original authentication. The destination still receives lend's proxy socket.
+
+Each session prints its local socket path unless silent mode is enabled. Closing SSH stops its daemon, cancels pending and running requests, and discards its leases and signature counters. A parent lifetime pipe also stops the daemon if the wrapper exits unexpectedly. The local session label describes the connection selected on the laptop. It does not establish the identity of a remote process or prevent socket relaying on the remote machine.
 
 ## Approval leases
 

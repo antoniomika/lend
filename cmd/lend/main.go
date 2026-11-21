@@ -158,6 +158,7 @@ func serve(ctx context.Context, args []string) (int, error) {
 	allowAll := fs.Bool("allow-all", false, "allow commands, SSH signing, supported agent management, and approval requests, with approval for each operation")
 	approvalTimeout := fs.Duration("approval-timeout", time.Minute, "time allowed for local approval")
 	commandTimeout := fs.Duration("command-timeout", 5*time.Minute, "maximum command runtime")
+	silent := fs.Bool("silent", false, "hide the startup message (errors and approval prompts remain visible)")
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "Usage of %s:\n", fs.Name())
 		visible := flag.NewFlagSet(fs.Name(), flag.ContinueOnError)
@@ -175,6 +176,9 @@ func serve(ctx context.Context, args []string) (int, error) {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0, nil
 		}
+		return 2, err
+	}
+	if err := applyEnvDefaults(fs); err != nil {
 		return 2, err
 	}
 	if fs.NArg() != 0 {
@@ -260,7 +264,9 @@ func serve(ctx context.Context, args []string) (int, error) {
 	if *session == "" {
 		*session = *profile
 	}
-	fmt.Fprintf(os.Stderr, "lend agent listening on %s\n", *socket)
+	if !*silent {
+		fmt.Fprintf(os.Stderr, "lend agent listening on %s\n", *socket)
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if *lifetimeFD >= 3 {
@@ -302,7 +308,7 @@ func usage() {
   lend approve [--socket PATH] --topic NAME --hook claude-compatible|json
   lend mcp [--socket PATH]
   lend keys [--socket PATH]
-  lend ssh --config FILE [--profile NAME] -- HOST [COMMAND...]
+  lend ssh [--config FILE] [--profile NAME] [--silent] [--system-agent] [SSH OPTIONS] [--] HOST [COMMAND...]
   lend status [--socket PATH | --all] [--watch] [--json]
   lend history [--socket PATH | --all | --file PATH] [--json]
   lend pause|resume|clear-leases [--socket PATH | --all]
@@ -316,5 +322,6 @@ func usage() {
 Run the agent on your laptop, forward its socket with SSH agent forwarding,
 then run lend exec on the remote host. Commands, SSH signatures, agent management, and approval requests
 require local approval.
+Use LEND_CONFIG and LEND_PROFILE for policy defaults.
 Use a subcommand's --help for all options.`)
 }

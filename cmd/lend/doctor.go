@@ -33,6 +33,11 @@ func diagnose(ctx context.Context, args []string) (int, error) {
 		}
 		return 2, err
 	}
+	if !*remote {
+		if err := applyEnvDefaults(fs); err != nil {
+			return 2, err
+		}
+	}
 	if fs.NArg() != 0 || *timeout <= 0 || (*mode != "auto" && *mode != "terminal") {
 		return 2, errors.New("doctor takes no positional arguments and requires a positive timeout and auto or terminal approval")
 	}
