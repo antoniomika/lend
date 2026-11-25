@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -43,14 +42,7 @@ func nativeDecision(ctx context.Context, s Summary) (Decision, error) {
 		return Decision{}, err
 	}
 	cmd.Stdin = bytes.NewReader(data)
-	if err := cmd.Run(); err != nil {
-		var exit *exec.ExitError
-		if s.Lease != nil && errors.As(err, &exit) && exit.ExitCode() == 2 {
-			return Decision{Lease: true}, ctx.Err()
-		}
-		return Decision{}, errors.New("local approval denied or authentication failed")
-	}
-	return Decision{}, ctx.Err()
+	return runNativeHelper(ctx, cmd, s.Lease != nil)
 }
 
 func RunHelper() int {
@@ -78,11 +70,5 @@ func RunHelper() int {
 		defer C.free(unsafe.Pointer(lease))
 	}
 	result := C.lend_approve(cstr, C.int(requirement), lease, C.int(inline))
-	if result == 2 {
-		return 2
-	}
-	if result == 1 {
-		return 0
-	}
-	return 1
+	return writeNativeHelperDecision(os.Stdout, int(result))
 }

@@ -46,6 +46,7 @@ static void lend_scroll_to_top(NSScrollView *scroll) {
 static NSModalResponse lend_run_alert(NSAlert *alert, NSScrollView *scroll) {
     [alert layout];
     lend_scroll_to_top(scroll);
+    [NSApp activateIgnoringOtherApps:YES];
     // Showing the window can scroll again, so repeat once the modal loop is running.
     dispatch_async(dispatch_get_main_queue(), ^{ lend_scroll_to_top(scroll); });
     return [alert runModal];
@@ -142,7 +143,8 @@ int lend_approve(const char *message, int requirement, const char *lease, int in
     @autoreleasepool {
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
-        [NSApp activateIgnoringOtherApps:YES];
+        // The helper uses modal loops instead of NSApplication's main run method.
+        [NSApp finishLaunching];
         if (inline_biometric && requirement == 2) {
             if (@available(macOS 12.0, *)) {
                 return lend_approve_inline(message, lease);
@@ -180,7 +182,14 @@ int lend_approve(const char *message, int requirement, const char *lease, int in
                     });
                 }];
         while (!finished) {
-            [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+            // AppKit must dispatch activation and window events while authentication is pending.
+            @autoreleasepool {
+                NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny
+                                                  untilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]
+                                                     inMode:NSDefaultRunLoopMode
+                                                    dequeue:YES];
+                if (event != nil) { [NSApp sendEvent:event]; }
+            }
         }
         [context invalidate];
         return allowed ? decision : 0;
