@@ -2,18 +2,20 @@
 
 {{define "title"}}{{.Data.Title}}{{end}}
 
-{{define "attrs"}}class="container-sm"{{end}}
+{{define "attrs"}}class="container"{{end}}
 
 {{define "body"}}
 {{template "nav" .}}
 
 <main id="main">
-  <h1 class="text-2xl text-underline-hdr text-hdr inline-block">{{.Data.Title}}</h1>
-  <h2 class="text-xl">{{.Data.Description}}</h2>
+  <h1 class="m-0">{{.Data.Title}}</h1>
+  <p class="m-0 mono text-grey"># {{.Data.Description}}</p>
 
-  <hr />
+  <hr class="dashed" />
 
   {{template "toc" .}}
+
+  <hr class="dashed" />
 </main>
 
 {{template "footer" .}}

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -89,9 +91,13 @@ func generate() error {
 		reference := sitemap.Children[len(sitemap.Children)-2]
 		reference.Children = append(reference.Children, item)
 	}
+	cacheID, err := staticHash()
+	if err != nil {
+		return err
+	}
 	config := &pdocs.DocConfig{
 		Logger: slog.Default(), Sitemap: sitemap, Out: output,
-		Tmpl: "tmpl", PageTmpl: "post.page.tmpl",
+		Tmpl: "tmpl", PageTmpl: "post.page.tmpl", CacheId: cacheID,
 	}
 	if err := config.GenSite(); err != nil {
 		return err
@@ -106,6 +112,23 @@ func generate() error {
 		return err
 	}
 	return os.Rename(output, "public")
+}
+
+func staticHash() (string, error) {
+	files, err := filepath.Glob("static/*")
+	if err != nil {
+		return "", err
+	}
+	h := sha256.New()
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			return "", err
+		}
+		h.Write([]byte(f))
+		h.Write(data)
+	}
+	return hex.EncodeToString(h.Sum(nil))[:8], nil
 }
 
 func copyTree(source, destination string) error {

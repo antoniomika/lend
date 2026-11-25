@@ -8,11 +8,20 @@
 {{template "nav" .}}
 
 <div class="post-group">
+  <aside class="toc-pane">
+    {{if .Data.TocHtml}}
+    <div class="sidebar-header mono text-sm text-grey">[OUTLINE]</div>
+    <div class="toc">
+      {{.Data.TocHtml}}
+    </div>
+    {{end}}
+  </aside>
+
   <main class="post" id="main">
-    <h1 class="text-2xl text-hdr m-0 flex items-center">
+    <h1 class="m-0 flex items-center">
       {{.Data.Title}}
     </h1>
-    <p class="m-0">{{.Data.Description}}</p>
+    <p class="m-0 mono">{{.Data.Description}}</p>
 
     <hr />
 
@@ -24,7 +33,9 @@
     {{template "footer" .}}
   </main>
 
-  {{template "sitemap-footer" .}}
+  <aside class="sitemap-pane">
+    {{template "sitemap-footer" .}}
+  </aside>
 </div>
 
 {{end}}

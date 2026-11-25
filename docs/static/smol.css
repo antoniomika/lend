@@ -100,6 +100,7 @@ pre > code {
 }
 
 code {
+  font-size: 85%;
   border-radius: 0.3rem;
   padding: 0.025rem 0.3rem;
 }
@@ -319,6 +320,9 @@ li pre {
 table {
   border-collapse: collapse;
   margin: var(--line-height) 0;
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
 }
 
 th,
