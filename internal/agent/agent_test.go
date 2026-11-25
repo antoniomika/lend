@@ -230,9 +230,9 @@ func TestProxyPreservesConnectionState(t *testing.T) {
 func TestTimeoutStopsCommand(t *testing.T) {
 	socket, _ := startServer(t, allow, "", 100*time.Millisecond)
 	start := time.Now()
-	_, err := socket.run(context.Background(), []string{"sleep", "10"}, strings.NewReader(""), io.Discard, io.Discard)
+	code, err := socket.run(context.Background(), []string{"sleep", "10"}, strings.NewReader(""), io.Discard, io.Discard)
 	if err == nil {
-		t.Fatal("timeout was ignored")
+		t.Fatalf("timeout returned exit code %d without an error", code)
 	}
 	if !strings.Contains(err.Error(), "command timeout") {
 		t.Fatalf("timeout error = %q", err)

@@ -414,7 +414,9 @@ func (s *Server) execute(parent context.Context, conn net.Conn, data []byte, pac
 	s.stage(ctx, "running")
 	// Reap descendants that remain in the command's process group.
 	defer syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	cancelled := make(chan struct{})
 	stop := context.AfterFunc(runCtx, func() {
+		defer close(cancelled)
 		if ctx.Err() == nil && errors.Is(runCtx.Err(), context.DeadlineExceeded) {
 			w.send(protocol.Error, []byte(fmt.Sprintf("command exceeded the %s command timeout", s.CommandTimeout)))
 		}
@@ -446,6 +448,12 @@ func (s *Server) execute(parent context.Context, conn net.Conn, data []byte, pac
 		}
 	}()
 	err = cmd.Wait()
+	if runCtx.Err() != nil {
+		outcome = "cancelled"
+		// The timeout error must reach the client before any exit status.
+		<-cancelled
+		return
+	}
 	status := 0
 	if err != nil {
 		var exitErr *exec.ExitError
